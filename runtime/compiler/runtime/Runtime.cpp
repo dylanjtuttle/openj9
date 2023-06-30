@@ -1991,10 +1991,12 @@ char * feGetEnv2(const char * s, const void * vm)
             // If TR_silentEnv is not found the result is -1. Setting TR_silentEnv prevents printing envVars
             bool verboseQuery = (res == -1 ? true : false);
 
+            /*
             if (verboseQuery)
                {
                j9tty_printf(PORTLIB, "JIT: env var %s is set to %s\n", s, envSpace);
                }
+            */
             }
          }
       }
