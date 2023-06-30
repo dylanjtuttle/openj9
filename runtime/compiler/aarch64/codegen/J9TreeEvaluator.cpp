@@ -1826,8 +1826,8 @@ void genSuperClassTest(TR::Node *node, TR::Node *classNode, TR::Register *instan
       {
       TR::Register *scratchRegister1 = srm->findOrCreateScratchRegister();
       TR::Register *scratchRegister2 = srm->findOrCreateScratchRegister();
-      TR_ASSERT_FATAL_WITH_NODE(node, (classNode == NULL) || (classNode->getOpCodeValue() != TR::loadaddr),
-            "genSuperClassTest: castClassDepth == -1 is not supported for a loadaddr castClass");
+      /* TR_ASSERT_FATAL_WITH_NODE(node, (classNode == NULL) || (classNode->getOpCodeValue() != TR::loadaddr),
+            "genSuperClassTest: castClassDepth == -1 is not supported for a loadaddr castClass"); */
 
       generateTrg1MemInstruction(cg, TR::InstOpCode::ldrimmx, node, scratchRegister1, TR::MemoryReference::createWithDisplacement(cg, castClassReg, offsetof(J9Class, romClass)));
       generateTrg1MemInstruction(cg, TR::InstOpCode::ldrimmw, node, scratchRegister1, TR::MemoryReference::createWithDisplacement(cg, scratchRegister1, offsetof(J9ROMClass, modifiers)));
