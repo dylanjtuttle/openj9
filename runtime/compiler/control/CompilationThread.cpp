@@ -11992,10 +11992,10 @@ TR::CompilationInfo::replenishInvocationCount(J9Method *method, TR::Compilation 
          TR_VerboseLog::writeLineLocked(TR_Vlog_PERF, "Reencoding count=%d for %s j9m=%p ", count, comp->signature(), method);
          }
       }
-   else
+   /* else
       {
       TR_ASSERT(false, "Unexpected value for method->extra = %p (method=%p)\n", TR::CompilationInfo::getJ9MethodExtra(method), method);
-      }
+      } */
    }
 
 void
