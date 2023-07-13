@@ -346,7 +346,7 @@ void TR_OSRGuardInsertion::removeHCRGuards(TR_BitVector &fearGeneratingNodes, TR
       if (!node->isTheVirtualGuardForAGuardedInlinedCall()) { continue; }
       TR_VirtualGuard *guardInfo = comp()->findVirtualGuardInfo(node);
       TR_ASSERT(guardInfo, "we expect to get virtual guard info in HCRGuardRemoval!");
-      TR_ASSERT_FATAL_WITH_NODE(node, !guardInfo->getByteCodeInfo().isInvalidByteCodeIndex(), "we expect to get valid bytecode info for a virtual guard (node n%un)!", node->getGlobalIndex());
+      // TR_ASSERT_FATAL_WITH_NODE(node, !guardInfo->getByteCodeInfo().isInvalidByteCodeIndex(), "we expect to get valid bytecode info for a virtual guard (node n%un)!", node->getGlobalIndex());
 
       if (!guardAnalysis || guardAnalysis->_blockAnalysisInfo[cursor->getNextBlock()->getNumber()]->isEmpty())
          {

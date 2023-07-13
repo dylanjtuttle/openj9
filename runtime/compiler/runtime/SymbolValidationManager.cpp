@@ -468,13 +468,11 @@ TR::SymbolValidationManager::getValueFromSymbolID(uint16_t id, TR::SymbolType ty
    if (id < _symbolToValueTable.size())
       entry = &_symbolToValueTable[id];
 
-   static char *assertsEnabled = feGetEnv("TR_ASSERT");
-
-   SVM_ASSERT(assertsEnabled == NULL || entry != NULL && entry->_hasValue, "Unknown ID %d", id);
+   SVM_ASSERT(entry != NULL && entry->_hasValue, "Unknown ID %d", id);
    if (entry->_value == NULL)
-      SVM_ASSERT(assertsEnabled == NULL || presence != SymRequired, "ID must not map to null");
+      SVM_ASSERT(presence != SymRequired, "ID must not map to null");
    else
-      SVM_ASSERT(assertsEnabled == NULL || entry->_type == type, "ID has type %d when %d was expected", entry->_type, type);
+      SVM_ASSERT(entry->_type == type, "ID has type %d when %d was expected", entry->_type, type);
 
    return entry->_value;
    }
@@ -884,8 +882,8 @@ TR::SymbolValidationManager::addClassInstanceOfClassRecord(TR_OpaqueClassBlock *
    {
    // Not using addClassRecord() because this doesn't define a class symbol. We
    // can pass either class as the symbol because neither will get a fresh ID
-   // SVM_ASSERT_ALREADY_VALIDATED(this, classOne);
-   // SVM_ASSERT_ALREADY_VALIDATED(this, classTwo);
+   SVM_ASSERT_ALREADY_VALIDATED(this, classOne);
+   SVM_ASSERT_ALREADY_VALIDATED(this, classTwo);
 
    // Skip creating a record when the subtyping relationship between the two
    // classes is known in advance.
@@ -930,7 +928,7 @@ TR::SymbolValidationManager::addDeclaringClassFromFieldOrStaticRecord(TR_OpaqueC
 bool
 TR::SymbolValidationManager::addConcreteSubClassFromClassRecord(TR_OpaqueClassBlock *childClass, TR_OpaqueClassBlock *superClass)
    {
-   // SVM_ASSERT_ALREADY_VALIDATED(this, superClass);
+   SVM_ASSERT_ALREADY_VALIDATED(this, superClass);
    return addClassRecord(childClass, new (_region) ConcreteSubClassFromClassRecord(childClass, superClass));
    }
 
@@ -1037,8 +1035,8 @@ TR::SymbolValidationManager::addMethodFromSingleImplementerRecord(TR_OpaqueMetho
                                                                   TR_OpaqueMethodBlock *callerMethod,
                                                                   TR_YesNoMaybe useGetResolvedInterfaceMethod)
    {
-   // SVM_ASSERT_ALREADY_VALIDATED(this, thisClass);
-   // SVM_ASSERT_ALREADY_VALIDATED(this, callerMethod);
+   SVM_ASSERT_ALREADY_VALIDATED(this, thisClass);
+   SVM_ASSERT_ALREADY_VALIDATED(this, callerMethod);
    return addMethodRecord(new (_region) MethodFromSingleImplementer(method, thisClass, cpIndexOrVftSlot, callerMethod, useGetResolvedInterfaceMethod));
    }
 
@@ -1281,6 +1279,7 @@ TR::SymbolValidationManager::validateSuperClassFromClassRecord(uint16_t superCla
 bool
 TR::SymbolValidationManager::validateClassInstanceOfClassRecord(uint16_t classOneID, uint16_t classTwoID, bool objectTypeIsFixed, bool castTypeIsFixed, bool wasInstanceOf)
    {
+   traceMsg(_comp, "validateClassInstanceOfClassRecord: Made it here!!!\n");
    TR_OpaqueClassBlock *classOne = getClassFromID(classOneID);
    TR_OpaqueClassBlock *classTwo = getClassFromID(classTwoID);
 
