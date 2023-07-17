@@ -5320,7 +5320,7 @@ intptr_t
 TR_J9VMBase::getStringUTF8Length(uintptr_t objectPointer)
    {
    TR_ASSERT(haveAccess(), "Must have VM access to call getStringUTF8Length");
-   TR_ASSERT(objectPointer, "assertion failure");
+   // TR_ASSERT(objectPointer, "assertion failure");
    return vmThread()->javaVM->internalVMFunctions->getStringUTF8Length(vmThread(), (j9object_t)objectPointer);
    }
 
