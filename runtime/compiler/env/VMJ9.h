@@ -315,7 +315,7 @@ public:
    bool fsdIsEnabled() { return _flags.testAny(FSDIsEnabled); }
    void setFSDIsEnabled(bool b) { _flags.set(FSDIsEnabled, b); }
 
-   uint32_t getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, char * fieldName, char * sig)
+   uint32_t getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, char * fieldName, const char * sig)
       {
       return getInstanceFieldOffset(classPointer, fieldName, (uint32_t)strlen(fieldName), sig, (uint32_t)strlen(sig));
       }
