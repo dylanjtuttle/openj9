@@ -6689,7 +6689,7 @@ TR_CISCTransformer::analyzeBoolTable(TR_BitVector **bv, TR::TreeTop **retSameExi
                      ntakenBV -= tmpBV;
                      break;
                   default:
-                     TR_ASSERT(false, "not implemented yet");
+                     // TR_ASSERT(false, "not implemented yet");
                      // not implemented yet
                      return false;
                   }
