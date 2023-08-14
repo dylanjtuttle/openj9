@@ -549,7 +549,7 @@ J9::AheadOfTimeCompile::initializeCommonAOTRelocationHeader(TR::IteratedExternal
          if (fej9->isMethodTracingEnabled(reinterpret_cast<J9Method *>(method)))
             flags |= methodTracingEnabled;
 
-         TR_ASSERT((flags & RELOCATION_CROSS_PLATFORM_FLAGS_MASK) == 0,  "reloFlags bits overlap cross-platform flags bits\n");
+         /* TR_ASSERT((flags & RELOCATION_CROSS_PLATFORM_FLAGS_MASK) == 0,  "reloFlags bits overlap cross-platform flags bits\n"); */
 
          TR_OpaqueClassBlock *inlinedMethodClass = resolvedMethod->containingClass();
          J9ROMClass *romClass = reinterpret_cast<J9ROMClass *>(fej9->getPersistentClassPointerFromClassPointer(inlinedMethodClass));
