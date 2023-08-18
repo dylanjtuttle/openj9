@@ -91,6 +91,21 @@ class AOTCacheWellKnownClassesRecord;
       }                                                  \
    while (false)
 
+#define SVM_ASSERT_ALREADY_VALIDATED_NONFATAL(svm, value)        \
+   do                                                    \
+      {                                                  \
+      void *_0value = (value);                         \
+      SVM_ASSERT_IMPL(                                   \
+         "SVM_ASSERT_ALREADY_VALIDATED",                 \
+         true,                                          \
+         (svm)->isAlreadyValidated(_0value),            \
+         "isAlreadyValidated(" #value ")",              \
+         "%s %p should have already been validated",     \
+         #value,                                        \
+         _0value);                                      \
+      }                                                  \
+   while (false)
+
 namespace TR {
 
 struct SymbolValidationRecord

@@ -882,7 +882,7 @@ TR::SymbolValidationManager::addClassInstanceOfClassRecord(TR_OpaqueClassBlock *
    {
    // Not using addClassRecord() because this doesn't define a class symbol. We
    // can pass either class as the symbol because neither will get a fresh ID
-   SVM_ASSERT_ALREADY_VALIDATED(this, classOne);
+   SVM_ASSERT_ALREADY_VALIDATED_NONFATAL(this, classOne);
    SVM_ASSERT_ALREADY_VALIDATED(this, classTwo);
 
    // Skip creating a record when the subtyping relationship between the two

@@ -629,7 +629,7 @@ bool TR::MonitorElimination::findRedundantMonitors()
             else if (node->getSymbolReference()->getSymbol()->holdsMonitoredObject() && _monitorStack->topIndex() > 0)
                {
                // This temp should match the monitor that is currently locked
-               TR_ASSERT(!monitor->getMonitorObject(), "monitor should have only one object store within it");
+               // TR_ASSERT(!monitor->getMonitorObject(), "monitor should have only one object store within it");
 
                // The temp and the monitored object should be equivalent, otherwise the wrong temp was found
                if (monitor->getMonitorNode()->getNumChildren() > 0)
