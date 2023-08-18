@@ -9704,8 +9704,8 @@ static TR::Register* inlineCompareAndSwapObjectNative(TR::Node* node, TR::CodeGe
 
    // Non-realtime: Generate a write barrier for this kind of object.
    //
-   // if (!comp->getOptions()->realTimeGC())
-      // {
+   if (!comp->getOptions()->realTimeGC())
+      {
       // We could insert a runtime test for whether the write actually succeeded or not.
       // However, since in practice it will almost always succeed we do not want to
       // penalize general runtime performance especially if it is still correct to do
@@ -9719,7 +9719,7 @@ static TR::Register* inlineCompareAndSwapObjectNative(TR::Node* node, TR::CodeGe
          NULL,
          scratchRegisterManager,
          cg);
-      // }
+      }
 
    cg->stopUsingRegister(tmp);
    cg->stopUsingRegister(EAX);
