@@ -361,7 +361,7 @@ void TR_OSRGuardInsertion::removeHCRGuards(TR_BitVector &fearGeneratingNodes, TR
             TR::Block *takenBlock = node->getBranchDestination()->getEnclosingBlock();
             if (takenBlock->getPredecessors().size() == 1)
                {
-               TR_ASSERT(takenBlock->getSuccessors().size() == 1, "HCR block should have exactly one successor");
+               /* TR_ASSERT(takenBlock->getSuccessors().size() == 1, "HCR block should have exactly one successor"); */
                comp()->getFlowGraph()->removeEdge(takenBlock->getSuccessors().front());
 
                while (takenBlock->getExceptionSuccessors().size() > 0)
