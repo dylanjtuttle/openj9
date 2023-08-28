@@ -1350,7 +1350,7 @@ J9::CodeGenerator::lowerTreeIfNeeded(
    //Anchoring node to either extract register pressure(performance)
    //or ensure instanceof doesn't have a parent node of CALL (correctness)
    //
-   char *anchoringReason = "register hog";
+   const char *anchoringReason = "register hog";
    switch (node->getOpCodeValue())
       {
       // Extract heavy register pressure trees when dictated at the start of the walk

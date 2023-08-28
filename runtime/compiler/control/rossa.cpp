@@ -156,7 +156,7 @@ bool isQuickstart = false;
 TR::Monitor *vpMonitor = 0;
 
 
-char *compilationErrorNames[]={
+const char *compilationErrorNames[]={
    "compilationOK",                                        // 0
    "compilationFailure",                                   // 1
    "compilationRestrictionILNodes",                        // 2

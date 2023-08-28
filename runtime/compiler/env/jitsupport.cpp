@@ -357,7 +357,7 @@ I_32 j9jit_vprintf(void *voidConfig, char *format, va_list args)
    }
 
 
-void j9jit_printf(void *voidConfig, char *format, ...)
+void j9jit_printf(void *voidConfig, const char *format, ...)
    {
    va_list args;
    va_start(args, format);

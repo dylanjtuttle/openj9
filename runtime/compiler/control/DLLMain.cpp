@@ -59,13 +59,13 @@ static IDATA initializeCompilerArgs(J9JavaVM* vm,
                                     J9VMDllLoadInfo* loadInfo,
                                     J9VMInitArgs* j9vmArgs,
                                     IDATA argIndex,
-                                    char** xCommandLineOptionsPtr,
+                                    const char** xCommandLineOptionsPtr,
                                     bool isXjit,
                                     bool mergeCompilerOptions)
    {
    PORT_ACCESS_FROM_JAVAVM(vm);
 
-   char* xCommandLineOptions = NULL;
+   const char* xCommandLineOptions = NULL;
 
    char *VMOPT_WITH_COLON;
    const char *fatalErrorStr = NULL;
@@ -209,7 +209,7 @@ static IDATA initializeCompilerArgs(J9JavaVM* vm,
 
 #if defined(J9VM_OPT_CRIU_SUPPORT)
 uintptr_t
-initializeCompilerArgsPostRestore(J9JavaVM* vm, intptr_t argIndex, char** xCommandLineOptionsPtr, bool isXjit, bool mergeCompilerOptions)
+initializeCompilerArgsPostRestore(J9JavaVM* vm, intptr_t argIndex, const char** xCommandLineOptionsPtr, bool isXjit, bool mergeCompilerOptions)
    {
    J9VMDllLoadInfo* loadInfo = FIND_DLL_TABLE_ENTRY( THIS_DLL_NAME );
    return initializeCompilerArgs(vm, loadInfo, vm->checkpointState.restoreArgsList, argIndex, xCommandLineOptionsPtr, isXjit, mergeCompilerOptions);
@@ -221,8 +221,8 @@ IDATA J9VMDllMain(J9JavaVM* vm, IDATA stage, void * reserved)
    J9JITConfig * jitConfig = 0;
    UDATA initialFlags = 0;
    J9VMDllLoadInfo* loadInfo = FIND_DLL_TABLE_ENTRY( THIS_DLL_NAME );
-   char* xjitCommandLineOptions = "";
-   char* xaotCommandLineOptions = "";
+   const char* xjitCommandLineOptions = "";
+   const char* xaotCommandLineOptions = "";
    IDATA fullSpeedDebugSet = FALSE;
    IDATA argIndex = 0;
 

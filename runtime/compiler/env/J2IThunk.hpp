@@ -94,7 +94,7 @@ class TR_MHJ2IThunkTable
 
    private: // Fields
 
-   char *_name;
+   const char *_name;
    TR::Monitor *_monitor;
    TR_PersistentArray<Node> _nodes;
 

@@ -302,7 +302,7 @@ bool J9::Options::_xrsSync = false;
  * This string array should be kept in sync with the
  * J9::ExternalOptions enum in J9Options.hpp
  */
-char * J9::Options::_externalOptionStrings[J9::ExternalOptions::TR_NumExternalOptions] =
+const char * J9::Options::_externalOptionStrings[J9::ExternalOptions::TR_NumExternalOptions] =
    {
    // TR_FirstExternalOption                 = 0
    "-Xnodfpbd",                           // = 0
@@ -398,7 +398,7 @@ enum TR_XlpCodeCacheOptions
    };
 
 // Returns large page flag type string for error handling.
-char *
+const char *
 getLargePageTypeString(UDATA pageFlags)
    {
    if (0 != (J9PORT_VMEM_PAGE_FLAG_PAGEABLE & pageFlags))
@@ -411,7 +411,7 @@ getLargePageTypeString(UDATA pageFlags)
 
 // Formats size to be in terms of X bytes to XX(K/M/G) for printing
 void
-qualifiedSize(UDATA *byteSize, char **qualifier)
+qualifiedSize(UDATA *byteSize, const char **qualifier)
 {
    UDATA size;
 
@@ -1982,7 +1982,7 @@ bool J9::Options::preProcessCodeCacheXlpCodeCache(J9JavaVM *vm, J9JITConfig *jit
       else if (xlpIndex >= 0)
          {
          // GET_MEMORY_VALUE macro casts it's second parameter to (char**)&, so a pointer to the option string is passed rather than the string literal.
-         char *lpOption = "-Xlp";
+         const char *lpOption = "-Xlp";
          GET_MEMORY_VALUE(xlpIndex, lpOption, requestedLargeCodePageSize);
          }
 

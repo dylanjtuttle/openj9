@@ -621,7 +621,7 @@ public:
       }
    virtual int64_t              getInt64FieldAt(uintptr_t objectPointer, uintptr_t fieldOffset);
    virtual void                 setInt64FieldAt(uintptr_t objectPointer, uintptr_t fieldOffset, int64_t newValue);
-   void setInt64Field(uintptr_t objectPointer, char *fieldName, int64_t newValue)
+   void setInt64Field(uintptr_t objectPointer, const char *fieldName, int64_t newValue)
       {
       setInt64FieldAt(objectPointer, getInstanceFieldOffset(getObjectClass(objectPointer), fieldName, "J"), newValue);
       }

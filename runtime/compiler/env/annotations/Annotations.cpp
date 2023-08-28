@@ -51,7 +51,7 @@ TR_Debug::printAnnotationInfoEntry(J9AnnotationInfo * annotationInfo,
    int32_t flag = annotationInfoEntryPtr->flags;
    #define ANNO_NAMEBUF_LEN 30
    char annNameBuffer[ANNO_NAMEBUF_LEN];
-   char * signatureName="";
+   const char * signatureName="";
    switch(flag)
       {
       case ANNOTATION_TYPE_CLASS:

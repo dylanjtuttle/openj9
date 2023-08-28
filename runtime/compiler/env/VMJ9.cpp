@@ -174,7 +174,7 @@ extern "C" J9Method * getNewInstancePrototype(J9VMThread *context);
 extern "C" void _getSTFLEBits(int numDoubleWords, uint64_t * bits);  /* 390 asm stub */
 extern "C" bool _isPSWInProblemState();  /* 390 asm stub */
 
-TR::FILE *fileOpen(TR::Options *options, J9JITConfig *jitConfig, char *name, char *permission, bool b1)
+TR::FILE *fileOpen(TR::Options *options, J9JITConfig *jitConfig, const char *name, const char *permission, bool b1)
    {
    PORT_ACCESS_FROM_ENV(jitConfig->javaVM);
    char tmp[1025];
@@ -907,7 +907,7 @@ TR_J9VMBase::getJ9FormattedName(
       J9PortLibrary *portLibrary,
       char *buf,
       size_t bufLength,
-      char *name,
+      const char *name,
       char *format,
       bool suffix)
    {
