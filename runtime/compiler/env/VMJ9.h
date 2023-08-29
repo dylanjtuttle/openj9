@@ -319,15 +319,15 @@ public:
       {
       return getInstanceFieldOffset(classPointer, fieldName, (uint32_t)strlen(fieldName), sig, (uint32_t)strlen(sig));
       }
-   uint32_t getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, char * fieldName, char * sig, uintptr_t options)
+   uint32_t getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, char * fieldName, const char * sig, uintptr_t options)
       {
       return getInstanceFieldOffset(classPointer, fieldName, (uint32_t)strlen(fieldName), sig, (uint32_t)strlen(sig), options);
       }
 
    virtual uint32_t getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, char * fieldName,
-                                                     uint32_t fieldLen, char * sig, uint32_t sigLen, UDATA options);
+                                                     uint32_t fieldLen, const char * sig, uint32_t sigLen, UDATA options);
    virtual uint32_t getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, char * fieldName,
-                                                     uint32_t fieldLen, char * sig, uint32_t sigLen);
+                                                     uint32_t fieldLen, const char * sig, uint32_t sigLen);
 
    // Not implemented
    virtual TR_ResolvedMethod * getObjectNewInstanceImplMethod(TR_Memory *) { return 0; }

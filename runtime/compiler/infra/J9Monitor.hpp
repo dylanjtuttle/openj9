@@ -47,7 +47,7 @@ class Monitor : public TR_Link0<TR::Monitor>
    {
    public:
 
-   static TR::Monitor *create(char *name);
+   static TR::Monitor *create(const char *name);
    static void destroy(TR::Monitor *monitor);
 
    void enter();
