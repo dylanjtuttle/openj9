@@ -6567,7 +6567,7 @@ TR_J9VMBase::getProfiledClassFromProfiledInfo(TR_ExtraAddressInfo *profiledInfo)
 
 uint32_t
 TR_J9VMBase::getInstanceFieldOffset(TR_OpaqueClassBlock * clazz, char * fieldName, uint32_t fieldLen,
-                               char * sig, uint32_t sigLen, UDATA options)
+                               const char * sig, uint32_t sigLen, UDATA options)
    {
    TR::VMAccessCriticalSection getInstanceFieldOffset(this);
    TR_ASSERT(clazz, "clazz should be set!");
@@ -6581,7 +6581,7 @@ TR_J9VMBase::getInstanceFieldOffset(TR_OpaqueClassBlock * clazz, char * fieldNam
 
 uint32_t
 TR_J9VMBase::getInstanceFieldOffset(TR_OpaqueClassBlock * clazz, char * fieldName, uint32_t fieldLen,
-                                    char * sig, uint32_t sigLen)
+                                    const char * sig, uint32_t sigLen)
    {
    return getInstanceFieldOffset(clazz, fieldName, fieldLen, sig, sigLen, J9_LOOK_NO_JAVA);
    }
@@ -8512,7 +8512,7 @@ TR_J9SharedCacheVM::javaLangClassGetModifiersImpl(TR_OpaqueClassBlock * clazzPoi
 
 uint32_t
 TR_J9SharedCacheVM::getInstanceFieldOffset(TR_OpaqueClassBlock * classPointer, char * fieldName, uint32_t fieldLen,
-                                    char * sig, uint32_t sigLen, UDATA options)
+                                    const char * sig, uint32_t sigLen, UDATA options)
    {
 
    TR::Compilation* comp = _compInfoPT->getCompilation();
