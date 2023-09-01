@@ -610,12 +610,12 @@ public:
    virtual uintptr_t           getStaticReferenceFieldAtAddress(uintptr_t fieldAddress);
    virtual int32_t              getInt32FieldAt(uintptr_t objectPointer, uintptr_t fieldOffset);
 
-   int32_t getInt32Field(uintptr_t objectPointer, char *fieldName)
+   int32_t getInt32Field(uintptr_t objectPointer, const char *fieldName)
       {
       return getInt32FieldAt(objectPointer, getInstanceFieldOffset(getObjectClass(objectPointer), fieldName, "I"));
       }
 
-   int64_t getInt64Field(uintptr_t objectPointer, char *fieldName)
+   int64_t getInt64Field(uintptr_t objectPointer, const char *fieldName)
       {
       return getInt64FieldAt(objectPointer, getInstanceFieldOffset(getObjectClass(objectPointer), fieldName, "J"));
       }
@@ -627,7 +627,7 @@ public:
       }
 
    virtual bool                 compareAndSwapInt64FieldAt(uintptr_t objectPointer, uintptr_t fieldOffset, int64_t oldValue, int64_t newValue);
-   bool compareAndSwapInt64Field(uintptr_t objectPointer, char *fieldName, int64_t oldValue, int64_t newValue)
+   bool compareAndSwapInt64Field(uintptr_t objectPointer, const char *fieldName, int64_t oldValue, int64_t newValue)
       {
       return compareAndSwapInt64FieldAt(objectPointer, getInstanceFieldOffset(getObjectClass(objectPointer), fieldName, "J"), oldValue, newValue);
       }
