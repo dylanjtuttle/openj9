@@ -83,8 +83,8 @@ static void bcvHookClassesUnload (J9HookInterface** hook, UDATA eventNum, void* 
 static void printMethod (J9BytecodeVerificationData * verifyData);
 static IDATA simulateStack (J9BytecodeVerificationData * verifyData);
 
-static IDATA parseOptions (J9JavaVM *vm, char *optionValues, char **errorString);
-static IDATA setVerifyState ( J9JavaVM *vm, char *option, char **errorString );
+static IDATA parseOptions (J9JavaVM *vm, char *optionValues, const char **errorString);
+static IDATA setVerifyState ( J9JavaVM *vm, char *option, const char **errorString );
 
 
 /**
@@ -2775,7 +2775,7 @@ j9bcv_J9VMDllMain (J9JavaVM* vm, IDATA stage, void* reserved)
 
 
 static IDATA
-setVerifyState(J9JavaVM *vm, char *option, char **errorString)
+setVerifyState(J9JavaVM *vm, char *option, const char **errorString)
 {
 	PORT_ACCESS_FROM_JAVAVM(vm);
 
@@ -2823,7 +2823,7 @@ setVerifyState(J9JavaVM *vm, char *option, char **errorString)
 
 
 static IDATA
-parseOptions(J9JavaVM *vm, char *optionValues, char **errorString)
+parseOptions(J9JavaVM *vm, char *optionValues, const char **errorString)
 {
 	char *optionValue = optionValues;			/* Values are separated by single NULL characters. */
 

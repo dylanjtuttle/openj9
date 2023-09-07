@@ -68,7 +68,7 @@ static IDATA initializeCompilerArgs(J9JavaVM* vm,
    char* xCommandLineOptions = NULL;
 
    char *VMOPT_WITH_COLON;
-   char *fatalErrorStr;
+   const char *fatalErrorStr;
    if (isXjit)
       {
       VMOPT_WITH_COLON = J9::Options::_externalOptionStrings[J9::ExternalOptions::Xjitcolon];

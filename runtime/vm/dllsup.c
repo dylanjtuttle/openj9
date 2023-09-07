@@ -139,9 +139,10 @@ UDATA loadJ9DLL(J9JavaVM * vm, J9VMDllLoadInfo* info) {
 	if ( loadFailed ) {
 		if ( !(info->loadFlags & SILENT_NO_DLL) ) {
 			const char *errorStr = j9error_last_error_message();
-			info->fatalErrorStr = j9mem_allocate_memory(strlen(errorStr)+1, OMRMEM_CATEGORY_VM);
-			if (info->fatalErrorStr) {
-				strcpy(info->fatalErrorStr, errorStr);
+			char *tempErrorStr = j9mem_allocate_memory(strlen(errorStr)+1, OMRMEM_CATEGORY_VM);
+			if (tempErrorStr) {
+				strcpy(tempErrorStr, errorStr);
+				info->fatalErrorStr = tempErrorStr;
 				info->loadFlags |= FREE_ERROR_STRING;			/* indicates that buffer should be freed later */
 			} else {
 				info->fatalErrorStr = "cannot allocate memory in loadJ9DLL";

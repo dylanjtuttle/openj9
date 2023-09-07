@@ -586,7 +586,7 @@ printClass(J9VMThread* vmThread, J9Class* clazz, char* message, UDATA bootLoader
  */
 
 static UDATA
-parseVerboseArgument(char* options, J9VerboseSettings* verboseOptions, char** errorString) {
+parseVerboseArgument(char* options, J9VerboseSettings* verboseOptions, const char** errorString) {
 	UDATA result = TRUE;
 
 	if (!options || !*options) {
@@ -668,7 +668,7 @@ parseVerboseArgument(char* options, J9VerboseSettings* verboseOptions, char** er
 
 #define VERBOSE_OPTION_BUF_SIZE 256
 UDATA
-parseVerboseArgumentList(J9JavaVM* vm, J9VMDllLoadInfo* loadInfo, char **errorString) {
+parseVerboseArgumentList(J9JavaVM* vm, J9VMDllLoadInfo* loadInfo, const char **errorString) {
 	char valuesBuffer[VERBOSE_OPTION_BUF_SIZE];				/* Should be long enough to cope with all possible options */
 	char* valuesBufferPtr = valuesBuffer;
 	IDATA bufEmptySpace = VERBOSE_OPTION_BUF_SIZE;
@@ -1018,7 +1018,7 @@ verboseHookGC(J9HookInterface** hook, UDATA eventNum, void* eventData, void* use
 	This method holds the verboseStateMutex to prevent multiple threads from modifying
 	verbose options simultaneously. */
 IDATA
-setVerboseState( J9JavaVM *vm, J9VerboseSettings *verboseOptions, char **errorString )
+setVerboseState( J9JavaVM *vm, J9VerboseSettings *verboseOptions, const char **errorString )
 {
 	J9HookInterface **vmHooks, **gcOmrHooks, **vmZipCachePoolHooks;
 	J9MemoryManagerVerboseInterface *mmFuncTable = (J9MemoryManagerVerboseInterface *)vm->memoryManagerFunctions->getVerboseGCFunctionTable(vm);

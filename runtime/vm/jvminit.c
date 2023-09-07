@@ -3113,7 +3113,7 @@ checkDllInfo(void* dllLoadInfo, void* userDataTemp)
 		}
 		/* free string buffer if necessary */
 		if ((entry->loadFlags & FREE_ERROR_STRING) && entry->fatalErrorStr) {
-			j9mem_free_memory(entry->fatalErrorStr);
+			j9mem_free_memory((char *)entry->fatalErrorStr);
 			entry->loadFlags &= ~FREE_ERROR_STRING;
 		}
 		entry->fatalErrorStr = NULL;			/* ensure that error is not reported more than once */

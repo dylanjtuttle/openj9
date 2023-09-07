@@ -355,7 +355,7 @@ j9gc_initialize_heap(J9JavaVM *vm, IDATA *memoryParameterTable, UDATA heapBytesR
 
 			loadInfo->fatalErrorStr = (char *)j9mem_allocate_memory(formatLength, OMRMEM_CATEGORY_MM);
 			if (loadInfo->fatalErrorStr) {
-				j9str_printf(PORTLIB, loadInfo->fatalErrorStr, formatLength, format, size, qualifier);
+				j9str_printf(PORTLIB, (char *)loadInfo->fatalErrorStr, formatLength, format, size, qualifier);
 				loadInfo->loadFlags |= FREE_ERROR_STRING; /* indicates that buffer should be freed later */
 			}
 			break;
@@ -374,7 +374,7 @@ j9gc_initialize_heap(J9JavaVM *vm, IDATA *memoryParameterTable, UDATA heapBytesR
 
 			loadInfo->fatalErrorStr = (char *)j9mem_allocate_memory(formatLength, OMRMEM_CATEGORY_MM);
 			if (loadInfo->fatalErrorStr) {
-				j9str_printf(PORTLIB, loadInfo->fatalErrorStr, formatLength, format, size, qualifier);
+				j9str_printf(PORTLIB, (char *)loadInfo->fatalErrorStr, formatLength, format, size, qualifier);
 				loadInfo->loadFlags |= FREE_ERROR_STRING; /* indicates that buffer should be freed later */
 			}
 			break;
@@ -397,7 +397,7 @@ j9gc_initialize_heap(J9JavaVM *vm, IDATA *memoryParameterTable, UDATA heapBytesR
 
 			loadInfo->fatalErrorStr = (char *)j9mem_allocate_memory(formatLength, OMRMEM_CATEGORY_MM);
 			if (loadInfo->fatalErrorStr) {
-				j9str_printf(PORTLIB, loadInfo->fatalErrorStr, formatLength, format, heapSize, heapSizeQualifier, pageSize, pageSizeQualifier);
+				j9str_printf(PORTLIB, (char *)loadInfo->fatalErrorStr, formatLength, format, heapSize, heapSizeQualifier, pageSize, pageSizeQualifier);
 				loadInfo->loadFlags |= FREE_ERROR_STRING; /* indicates that buffer should be freed later */
 			}
 			extensions->largePageFailedToSatisfy = true;
@@ -424,7 +424,7 @@ j9gc_initialize_heap(J9JavaVM *vm, IDATA *memoryParameterTable, UDATA heapBytesR
 
 			loadInfo->fatalErrorStr = (char *)j9mem_allocate_memory(formatLength, OMRMEM_CATEGORY_MM);
 			if (loadInfo->fatalErrorStr) {
-				j9str_printf(PORTLIB, loadInfo->fatalErrorStr, formatLength, format, splitFailure, newSpaceSize, newQualifier, oldSpaceSize, oldQualifier);
+				j9str_printf(PORTLIB, (char *)loadInfo->fatalErrorStr, formatLength, format, splitFailure, newSpaceSize, newQualifier, oldSpaceSize, oldQualifier);
 				loadInfo->loadFlags |= FREE_ERROR_STRING; /* indicates that buffer should be freed later */
 			}
 		}
@@ -3017,7 +3017,7 @@ gcInitializeDefaults(J9JavaVM* vm)
 
 		/* We are going to try again -- free any buffer we already have from j9gc_initialize_heap */
 		if  ((loadInfo->loadFlags & FREE_ERROR_STRING) && (NULL != loadInfo->fatalErrorStr)) {
-			j9mem_free_memory(loadInfo->fatalErrorStr);
+			j9mem_free_memory((char *)loadInfo->fatalErrorStr);
 			loadInfo->loadFlags &= ~FREE_ERROR_STRING;
 		}
 		loadInfo->fatalErrorStr = NULL;

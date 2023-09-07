@@ -875,7 +875,7 @@ typedef struct J9VMDllLoadInfo {
 	U_32 completedBits;
 	UDATA descriptor;
 	IDATA  ( *j9vmdllmain)(struct J9JavaVM *vm, IDATA stage, void *reserved) ;
-	char* fatalErrorStr;
+	const char* fatalErrorStr;
 	void* reserved;
 } J9VMDllLoadInfo;
 
@@ -5746,7 +5746,7 @@ typedef struct J9JavaVM {
 	UDATA requiredDebugAttributes;
 	UDATA stackSizeIncrement;
 	struct J9JavaLangManagementData *managementData;
-	IDATA  ( *setVerboseState)(struct J9JavaVM *vm, struct J9VerboseSettings *verboseOptions, char **errorString) ;
+	IDATA  ( *setVerboseState)(struct J9JavaVM *vm, struct J9VerboseSettings *verboseOptions, const char **errorString) ;
 	omrthread_monitor_t verboseStateMutex;
 	struct J9SharedClassPreinitConfig* sharedClassPreinitConfig;
 	omrthread_monitor_t runtimeFlagsMutex;
