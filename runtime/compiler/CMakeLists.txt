@@ -289,6 +289,10 @@ elseif(OMR_OS_ZOS)
 		J9VM_TIERED_CODE_CACHE
 		MAXMOVE
 	)
+	list(APPEND J9_CXXFLAGS
+		-trigraphs
+		-Wno-trigraphs
+	)
 	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -L/usr/lpp/hzc/lib")
 else()
 	message(SEND_ERROR "unsupported platform")
