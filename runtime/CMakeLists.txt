@@ -281,6 +281,10 @@ target_sources(j9vm_interface
 
 # If on z/OS link against omr_ascii, this is what gives us convlit(ISO8859-1) and links j9atoe
 if(OMR_OS_ZOS)
+	list(APPEND J9_CXXFLAGS
+		-trigraphs
+		-Wno-trigraphs
+	)
 	target_link_libraries(j9vm_interface INTERFACE omr_ascii)
 endif()
 
