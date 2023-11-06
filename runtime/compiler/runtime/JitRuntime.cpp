@@ -108,7 +108,7 @@ J9::Recompilation::isAlreadyBeingCompiled(
    return TR::Recompilation::isAlreadyPreparedForRecompile(startPC);
    }
 
-void setDllSlip(char*CodeStart,char*CodeEnd,char*dllName, TR::Compilation * comp)
+void setDllSlip(const char *CodeStart, const char *CodeEnd, const char *dllName, TR::Compilation *comp)
 {
 #if defined(J9ZOS390)
    char  errBuf[512];
@@ -137,11 +137,11 @@ void setDllSlip(char*CodeStart,char*CodeEnd,char*dllName, TR::Compilation * comp
          fptrl=(void (*)(char *, char *, void *, void *, char *, char *, char *))do_slip_func;
          (*fptrl)(CodeStart,
                   CodeEnd,
-                  (void*)NULL,
-                  (void*)NULL,
-                  (char*)NULL,
-                  (char*)NULL,
-                  (char*)NULL
+                  (void *)NULL,
+                  (void *)NULL,
+                  (char *)NULL,
+                  (char *)NULL,
+                  (char *)NULL
                  );
          }
       else if (comp)
@@ -1421,7 +1421,7 @@ static void printMethodHandleArgs(j9object_t methodHandle, void **stack, J9VMThr
       TR_VerboseLog::writeLine(TR_Vlog_FAILURE, "%p   Nearby stack slots:", vmThread);
       for (i = -9; i <= 9; i++)
          {
-         char *tag = "";
+         const char *tag = "";
          void *slotValue = stack[i];
          if (slotValue == methodHandle)
             tag = " <- target MethodHandle is here";
