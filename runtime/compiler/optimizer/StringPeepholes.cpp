@@ -161,7 +161,7 @@ TR::SymbolReference* TR_StringPeepholes::MethodEnumToArgsForMethodSymRefFromName
           m !=  END_STRINGPEEPHOLES_METHODS , "wrong constant!!");
 
 
-   static char* classNames [] = {"java/math/BigDecimal",
+   static const char* classNames [] = {"java/math/BigDecimal",
                                  "java/math/BigDecimal",
                          "java/math/BigDecimal",
                          "java/math/BigDecimal",
@@ -173,7 +173,7 @@ TR::SymbolReference* TR_StringPeepholes::MethodEnumToArgsForMethodSymRefFromName
                          "java/lang/String",
                          "java/lang/String"};
 
-   static char* methodNames [] = {"SMAAMSS",
+   static const char* methodNames [] = {"SMAAMSS",
                                   "SMSS",
                           "AAMSS",
                           "MSS",
@@ -185,7 +185,7 @@ TR::SymbolReference* TR_StringPeepholes::MethodEnumToArgsForMethodSymRefFromName
                                   "<init>",
                           "<init>"};
 
-   static char* signatures [] =  {        "(Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;IIII)Ljava/math/BigDecimal;",
+   static const char* signatures [] =  {        "(Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;IIII)Ljava/math/BigDecimal;",
                                   "(Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;II)Ljava/math/BigDecimal;",
                           "(Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;Ljava/math/BigDecimal;III)Ljava/math/BigDecimal;",
                           "(Ljava/math/BigDecimal;Ljava/math/BigDecimal;I)Ljava/math/BigDecimal;",
@@ -2088,7 +2088,7 @@ TR::TreeTop *TR_StringPeepholes::searchForStringAppend(const char *sig, TR::Tree
             }
          else
             {
-            char *sig2 = "java/lang/Integer.toString(I)";
+            const char *sig2 = "java/lang/Integer.toString(I)";
 
             // Expected reference count for the Integer.toString may change if pending pushes are being
             // generated
