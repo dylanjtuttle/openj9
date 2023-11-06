@@ -887,7 +887,7 @@ TR::CompilationInfoPerThread::openRTLogFile()
 
       if (!truncated)
          {
-         _rtLogFile = fileOpen(TR::Options::getAOTCmdLineOptions(), jitConfig, fn, "wb", true);
+         _rtLogFile = fileOpen(TR::Options::getAOTCmdLineOptions(), jitConfig, fn, (char *)"wb", true);
          }
       else
          {
@@ -11675,7 +11675,7 @@ void TR::CompilationInfo::printCompQueue()
 
 #if DEBUG
 void
-TR::CompilationInfo::debugPrint(char * debugString)
+TR::CompilationInfo::debugPrint(const char *debugString)
    {
    if (!_traceCompiling)
       return;
@@ -11683,7 +11683,7 @@ TR::CompilationInfo::debugPrint(char * debugString)
    }
 
 void
-TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * debugString)
+TR::CompilationInfo::debugPrint(J9VMThread *vmThread, const char *debugString)
    {
    if (!_traceCompiling)
       return;
@@ -11692,7 +11692,7 @@ TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * debugString)
    }
 
 void
-TR::CompilationInfo::debugPrint(char * debugString, intptr_t val)
+TR::CompilationInfo::debugPrint(const char *debugString, intptr_t val)
    {
    if (!_traceCompiling)
       return;
@@ -11700,7 +11700,7 @@ TR::CompilationInfo::debugPrint(char * debugString, intptr_t val)
    }
 
 void
-TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * debugString, IDATA val)
+TR::CompilationInfo::debugPrint(J9VMThread *vmThread, const char *debugString, IDATA val)
    {
    if (!_traceCompiling)
       return;
@@ -11709,7 +11709,7 @@ TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * debugString, IDATA
    }
 
 void
-TR::CompilationInfo::debugPrint(J9Method * method)
+TR::CompilationInfo::debugPrint(J9Method *method)
    {
    if (!_traceCompiling)
       return;
@@ -11728,7 +11728,7 @@ TR::CompilationInfo::debugPrint(J9Method * method)
    }
 
 void
-TR::CompilationInfo::debugPrint(char * debugString, J9Method * method)
+TR::CompilationInfo::debugPrint(const char *debugString, J9Method *method)
    {
    if (!_traceCompiling)
       return;
@@ -11738,7 +11738,7 @@ TR::CompilationInfo::debugPrint(char * debugString, J9Method * method)
    }
 
 void
-TR::CompilationInfo::debugPrint(char * debugString, TR::IlGeneratorMethodDetails & details, J9VMThread * vmThread)
+TR::CompilationInfo::debugPrint(const char *debugString, TR::IlGeneratorMethodDetails & details, J9VMThread *vmThread)
    {
    if (!_traceCompiling)
       return;
@@ -11761,7 +11761,7 @@ TR::CompilationInfo::debugPrint(char * debugString, TR::IlGeneratorMethodDetails
    }
 
 void
-TR::CompilationInfo::debugPrint(J9VMThread * vmThread, char * msg, TR_MethodToBeCompiled *entry)
+TR::CompilationInfo::debugPrint(J9VMThread *vmThread, const char *msg, TR_MethodToBeCompiled *entry)
    {
    if (!_traceCompiling)
       return;
