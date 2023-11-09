@@ -55,8 +55,8 @@ typedef enum {
 } AnnotationType;
 
 
-  typedef struct{
-    char           * name;
+  typedef struct {
+    const char     * name;
     AnnotationType   type;
   } AnnotationEntry;
 
@@ -70,7 +70,7 @@ typedef enum {
 
 
 typedef struct {
-   char        * name;
+   const char  * name;
    int32_t       nameLen;
    J9Class     * clazz; // annotation class
    } AnnotationTable;
