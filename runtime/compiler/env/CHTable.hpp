@@ -705,7 +705,7 @@ class TR_PersistentArrayFieldInfo : public TR_PersistentFieldInfo
                                int32_t *dimensionInfo = NULL,
                                uint8_t b1 = VALID_BUT_NOT_ALWAYS_INITIALIZED,
                                uint8_t b2 = VALID_BUT_NOT_ALWAYS_INITIALIZED,
-                               char *c = "",
+                               char *c = (char *)"",
                                int32_t numChars = -1)
       : TR_PersistentFieldInfo(sig, sigLength, next, b2, c, numChars),
         _numDimensions(numDimensions),
