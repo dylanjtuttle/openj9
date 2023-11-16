@@ -205,9 +205,25 @@ J9::Options::kcaOffsets(char *option, void *, TR::OptionTable *entry)
       fprintf( file, "#define OSTHREAD_TID               (%" OMR_PRIuSIZE ")\n", offsetof(J9AbstractThread,tid) );
 
       fprintf( file, "#define J9JITSTACKATLAS_MAPBYTES   (%" OMR_PRIuSIZE ")\n", offsetof(J9JITStackAtlas,numberOfMapBytes) );
+#if defined(LINUX)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#elif defined(OSX) || defined(AIXPPC)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#elif defined(J9ZOS390)
+#pragma report(disable, "CCN6281")
+#endif
       fprintf( file, "#define BODYINFO_HOTNESS           (%" OMR_PRIuSIZE ")\n", offsetof(TR_PersistentJittedBodyInfo,_hotness) );
       fprintf( file, "#define PERSISTENTINFO_CHTABLE     (%" OMR_PRIuSIZE ")\n", offsetof(TR::PersistentInfo,_persistentCHTable) );
       fprintf( file, "#define PERSISTENTCLASS_VISITED    (%" OMR_PRIuSIZE ")\n", offsetof(TR_PersistentClassInfo,_visitedStatus) );
+#if defined(LINUX)
+#pragma GCC diagnostic pop
+#elif defined(OSX) || defined(AIXPPC)
+#pragma clang diagnostic pop
+#elif defined(J9ZOS390)
+#pragma report(enable, "CCN6281")
+#endif
 
       fprintf( file, "#define ELS_OLDELS                 (%" OMR_PRIuSIZE ")\n", offsetof(J9VMEntryLocalStorage,oldEntryLocalStorage) );
       fprintf( file, "#define ELS_I2JSTATE               (%" OMR_PRIuSIZE ")\n", offsetof(J9VMEntryLocalStorage,i2jState) );
