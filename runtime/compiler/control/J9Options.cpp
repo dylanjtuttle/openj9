@@ -823,9 +823,7 @@ Options::setJitConfigNumericValue(const char *option, void *base, TR::OptionTabl
    {
    char *jitConfig = (char*)_feBase;
    // All numeric fields in jitConfig are declared as UDATA
-   char *tempOption = (char *)option;
-   *((intptr_t*)(jitConfig + entry->parm1)) = (intptr_t)TR::Options::getNumericValue(tempOption);
-   option = tempOption;
+   *((intptr_t*)(jitConfig + entry->parm1)) = (intptr_t)TR::Options::getNumericValue(option);
    return option;
    }
 
