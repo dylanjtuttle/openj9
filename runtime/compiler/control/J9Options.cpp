@@ -1588,7 +1588,7 @@ void J9::Options::preProcessJniAccelerator(J9JavaVM *vm)
       int32_t argIndex = FIND_ARG_IN_VMARGS(STARTSWITH_MATCH, jniAccOption, 0);
       if (argIndex >= 0)
          {
-         char *optValue;
+         const char *optValue;
          doneWithJniAcc = true;
          GET_OPTION_VALUE(argIndex, ':', &optValue);
          if (*optValue == '{')
@@ -3297,7 +3297,7 @@ unpackRegex(TR::SimpleRegex *&regexPtr)
    {
    if (!regexPtr)
       return;
-   char *str = (char*)((uintptr_t)&regexPtr + (uintptr_t)regexPtr);
+   const char *str = (const char *)((uintptr_t)&regexPtr + (uintptr_t)regexPtr);
    regexPtr = TR::SimpleRegex::create(str);
    }
 
