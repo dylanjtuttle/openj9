@@ -8226,7 +8226,7 @@ void TR_EscapeAnalysis::scanForExtraCallsToInline()
 
          TR::TreeTop *callTreeToInline = NULL;
          TR::Node    *callNode = NULL;
-         char *reason = "??";
+         char *reason = (char *)"??";
          if (  tt->getNode()->getNumChildren() >= 1
             && tt->getNode()->getFirstChild()->getOpCode().isCall()
             && tt->getNode()->getFirstChild()->getSymbol()->isResolvedMethod())
@@ -8238,7 +8238,7 @@ void TR_EscapeAnalysis::scanForExtraCallsToInline()
                   {
                   case TR::java_lang_Integer_valueOf:
                      callTreeToInline = tt;
-                     reason = "dememoization did not eliminate it";
+                     reason = (char *)"dememoization did not eliminate it";
                      break;
                   default:
                      break;
@@ -8360,7 +8360,7 @@ FieldInfo& Candidate::findOrSetFieldInfo(TR::Node *fieldRefNode, TR::SymbolRefer
    }
 
 
-void TR_EscapeAnalysis::printCandidates(char *title)
+void TR_EscapeAnalysis::printCandidates(const char *title)
    {
    if (title)
       traceMsg(comp(), "\n%s\n", title);
@@ -8376,11 +8376,11 @@ void TR_EscapeAnalysis::printCandidates(char *title)
 static void printSymRefList(TR_ScratchList<TR::SymbolReference> *list, TR::Compilation *comp)
    {
    ListIterator<TR::SymbolReference> iter(list);
-   char *sep = "";
+   char *sep = (char *)"";
    for (TR::SymbolReference *symRef = iter.getFirst(); symRef; symRef = iter.getNext())
       {
       traceMsg(comp, "%s#%d", sep, symRef->getReferenceNumber());
-      sep = ",";
+      sep = (char *)",";
       }
    }
 
