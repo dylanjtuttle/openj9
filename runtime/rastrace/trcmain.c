@@ -1041,9 +1041,14 @@ initializeTrace(UtThreadData **thr, void **gbl,
 	 */
 	memset(&tempThr, 0, sizeof(UtThreadData));
 	initHeader(&tempThr.header, UT_THREAD_DATA_NAME, sizeof(UtThreadData));
-
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-pointer"
+#endif
 	*thr = &tempThr;
-
+#if defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic pop
+#endif
 	if (utGlobal != NULL){
 		if (UT_GLOBAL(traceEnabled) == TRUE){
 			if (UT_GLOBAL(traceFinalized) && UT_GLOBAL(traceInCore) == TRUE){
