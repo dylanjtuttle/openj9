@@ -9975,6 +9975,208 @@ inlineCompareAndSwapNative(
    }
 
 
+/**
+ * \brief
+ *   Generate inlined instructions equivalent to java/lang/StringCoding.countPositives
+ *
+ * \param node
+ *   The tree node
+ *
+ * \param cg
+ *   The Code Generator
+ */
+static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
+   {
+   static uint8_t SIGNBITMASK[] =
+      {
+      0x80, 0x80, 0x80, 0x80,
+      0x80, 0x80, 0x80, 0x80,
+      };
+   static uint8_t SHIFTEDMASK[] =
+      {
+      0xFF, 0xFF, 0xFF, 0xFF,
+      0xFF, 0xFF, 0xFF, 0xFF,
+      };
+   
+   // Arguments to countPositives
+   // Byte array
+   auto ba = cg->evaluate(node->getChild(0));
+   // Offset (i.e. index to begin counting from)
+   auto off = cg->evaluate(node->getChild(1));
+   // Length of byte array
+   auto len = cg->evaluate(node->getChild(2));
+
+   auto ba_reg = cg->allocateRegister();
+   auto off_reg = cg->allocateRegister();
+   auto len_reg = cg->allocateRegister();
+   auto limit_reg = cg->allocateRegister();
+   auto mask_reg = cg->allocateRegister();
+   auto i_reg = cg->allocateRegister();
+   auto chunk_reg = cg->allocateRegister();
+   auto end_of_chunk_reg = cg->allocateRegister();
+   auto shifted_mask_reg = cg->allocateRegister();
+   auto rcx_reg = cg->allocateRegister();
+   auto cl_reg = cg->allocateRegister();
+   auto result = cg->allocateRegister();
+
+   auto dependencies = generateRegisterDependencyConditions((uint8_t)7, (uint8_t)7, cg);
+   dependencies->addPreCondition(ba_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(off_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(len_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(limit_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(mask_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(i_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(chunk_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(end_of_chunk_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(shifted_mask_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(rcx_reg, TR::RealRegister::rcx, cg);
+   dependencies->addPreCondition(cl_reg, TR::RealRegister::cl, cg);
+   dependencies->addPreCondition(result, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(ba_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(off_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(len_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(limit_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(mask_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(i_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(chunk_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(end_of_chunk_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(shifted_mask_reg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(rcx_reg, TR::RealRegister::rcx, cg);
+   dependencies->addPostCondition(cl_reg, TR::RealRegister::cl, cg);
+   dependencies->addPostCondition(result, TR::RealRegister::NoReg, cg);
+
+   // Labels
+   auto begLabel = generateLabelSymbol(cg);
+   auto endLabel = generateLabelSymbol(cg);
+   auto loopLabel = generateLabelSymbol(cg);
+   auto performMaskLabel = generateLabelSymbol(cg);
+   auto returnLenLabel = generateLabelSymbol(cg);
+   auto returnOffLabel = generateLabelSymbol(cg);
+   begLabel->setStartInternalControlFlow();
+   endLabel->setEndInternalControlFlow();
+
+   // Beginning label
+   generateLabelInstruction(TR::InstOpCode::label, node, begLabel, cg);
+
+   // limit = off + len
+   // MOV limit, 0
+   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, limit_reg, 0, cg);
+   // ADD limit, off
+   generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit_reg, off_reg, cg);
+   // ADD limit, len
+   generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit_reg, len_reg, cg);
+
+   // Prepare 8 byte sign bit mask
+   // MOV mask, 08080808080808080h
+   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, limit_reg, SIGNBITMASK, cg);
+
+   // i = off
+   // MOV i, off
+   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, i_reg, off_reg, cg);
+
+   // loop_start label
+   generateLabelInstruction(TR::InstOpCode::label, node, loopLabel, cg);
+
+   // Load 8 bytes from address [base + i]
+   // MOV chunk, [ba + i]
+   generateRegMemInstruction(TR::InstOpCode::MOVQRegMem, node, chunk_reg, generateX86MemoryReference(), cg);
+
+   // Set index of the end of the chunk (end_of_chunk = i + 8)
+   // MOV end_of_chunk, i
+   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, end_of_chunk_reg, i_reg, cg);
+   // ADD end_of_chunk, 8
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, end_of_chunk_reg, 8, cg);
+
+   // If end_of_chunk <= limit, all of the chunk is valid array data
+   // CMP end_of_chunk, limit
+   generateRegRegInstruction(TR::InstOpCode::CMP8RegReg, node, end_of_chunk_reg, limit_reg, cg);
+   // JLE perform_mask
+   generateLabelInstruction(TR::InstOpCode::JLE1, node, performMaskLabel, cg);
+
+   // Otherwise, only some of the bytes in the chunk contain real array data
+   // Prepare a mask that will mask out any non-array bits in the chunk
+   // MOV shifted_mask, 0FFFFFFFFFFFFFFFFh
+   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, shifted_mask_reg, SHIFTEDMASK, cg);
+
+   // Shift the mask left by a number of bytes equal to the difference between limit and end_of_chunk
+   // end_of_chunk should be guaranteed to be larger than limit here, since if it wasn't we would have skipped over this part
+   // rcx = end_of_chunk - limit (number of bytes to be shifted)
+   // MOV rcx, end_of_chunk
+   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, rcx_reg, end_of_chunk_reg, cg);
+   // SUB rcx, limit
+   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, rcx_reg, limit_reg, cg);
+   // rcx *= 8 (number of bytes to be shifted)
+   // SHL rcx, 3
+   generateRegImmInstruction(TR::InstOpCode::SHL8RegImm1, node, rcx_reg, 3, cg);
+   // cl is the lowest 8 bits of rcx
+   // SHR shifted_mask, cl
+   generateRegImmInstruction(TR::InstOpCode::SHR8RegCL, node, shifted_mask_reg, cl_reg, cg);
+
+   // Mask the sign bit mask to only check sign bits that are part of the array
+   // AND mask, shifted_mask
+   generateRegRegInstruction(TR::InstOpCode::AND8RegReg, node, mask_reg, shifted_mask_reg, cg);
+
+   // perform_mask label
+   generateLabelInstruction(TR::InstOpCode::label, node, performMaskLabel, cg);
+
+   // and the chunk with the sign bit mask
+   // TEST chunk, mask
+   generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk_reg, mask_reg, cg);
+   // If the result is nonzero (i.e. at least one of the sign bits is set, break and return off)
+   // JNZ return_off
+   generateLabelInstruction(TR::InstOpCode::JNE1, node, returnOffLabel, cg);
+
+   // i += 8
+   // ADD i, 8
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i_reg, 8, cg);
+
+   // If i < limit, jump back to the start of the loop
+   // CMP i, limit
+   generateRegRegInstruction(TR::InstOpCode::CMP8RegReg, node, i_reg, limit_reg, cg);
+   // JL loop_start
+   generateLabelInstruction(TR::InstOpCode::JL1, node, loopLabel, cg);
+
+   // return_len label
+   generateLabelInstruction(TR::InstOpCode::label, node, returnLenLabel, cg);
+
+   // result = len
+   // MOV result, len
+   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, result, len_reg, cg);
+
+   // JMP end
+   generateLabelInstruction(TR::InstOpCode::JMP1, node, endLabel, cg);
+
+   // return_off label
+   generateLabelInstruction(TR::InstOpCode::label, node, returnOffLabel, cg);
+
+   // result = off
+   // MOV result, off
+   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, result, off_reg, cg);
+
+   // JMP end
+   generateLabelInstruction(TR::InstOpCode::JMP1, node, endLabel, cg);
+
+   cg->stopUsingRegister(ba_reg);
+   cg->stopUsingRegister(off_reg);
+   cg->stopUsingRegister(len_reg);
+   cg->stopUsingRegister(limit_reg);
+   cg->stopUsingRegister(mask_reg);
+   cg->stopUsingRegister(i_reg);
+   cg->stopUsingRegister(chunk_reg);
+   cg->stopUsingRegister(end_of_chunk_reg);
+   cg->stopUsingRegister(shifted_mask_reg);
+   cg->stopUsingRegister(rcx_reg);
+   cg->stopUsingRegister(cl_reg);
+
+   node->setRegister(result);
+   for (int32_t i = 0; i < node->getNumChildren(); i++)
+      {
+      cg->decReferenceCount(node->getChild(i));
+      }
+   return result;
+   }
+
+
 // Generate inline code if possible for a call to an inline method. The call
 // may be direct or indirect; if it is indirect a guard will be generated around
 // the inline code and a fall-back to the indirect call.
@@ -11702,6 +11904,10 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
 
    switch (symbol->getRecognizedMethod())
       {
+      cast TR::java_lang_StringCoding_countPositives:
+         {
+         return intrinsicCountPositives(node, cg);
+         }
       case TR::java_nio_Bits_keepAlive:
       case TR::java_lang_ref_Reference_reachabilityFence:
          {
