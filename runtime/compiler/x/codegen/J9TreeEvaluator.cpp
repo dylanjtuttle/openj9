@@ -9987,16 +9987,16 @@ inlineCompareAndSwapNative(
  */
 static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    {
-   // static uint8_t SIGNBITMASK[] =
-   //    {
-   //    0x80, 0x80, 0x80, 0x80,
-   //    0x80, 0x80, 0x80, 0x80,
-   //    };
-   // static uint8_t SHIFTEDMASK[] =
-   //    {
-   //    0xFF, 0xFF, 0xFF, 0xFF,
-   //    0xFF, 0xFF, 0xFF, 0xFF,
-   //    };
+   static uint8_t SIGNBITMASK[] =
+      {
+      0x80, 0x80, 0x80, 0x80,
+      0x80, 0x80, 0x80, 0x80,
+      };
+   static uint8_t SHIFTEDMASK[] =
+      {
+      0xFF, 0xFF, 0xFF, 0xFF,
+      0xFF, 0xFF, 0xFF, 0xFF,
+      };
    
    // Arguments to countPositives
    // Byte array
@@ -10006,40 +10006,40 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // Length of byte array
    auto len = cg->evaluate(node->getChild(2));
 
-   auto ba_reg = cg->allocateRegister();
-   auto off_reg = cg->allocateRegister();
-   auto len_reg = cg->allocateRegister();
-   auto limit_reg = cg->allocateRegister();
-   auto mask_reg = cg->allocateRegister();
-   auto i_reg = cg->allocateRegister();
-   auto chunk_reg = cg->allocateRegister();
-   auto end_of_chunk_reg = cg->allocateRegister();
-   auto shifted_mask_reg = cg->allocateRegister();
-   auto ecx_reg = cg->allocateRegister();
+   // auto ba_reg = cg->allocateRegister();
+   // auto off_reg = cg->allocateRegister();
+   // auto len_reg = cg->allocateRegister();
+   auto limit = cg->allocateRegister();
+   auto mask = cg->allocateRegister();
+   auto i = cg->allocateRegister();
+   auto chunk = cg->allocateRegister();
+   auto end_of_chunk = cg->allocateRegister();
+   auto shifted_mask = cg->allocateRegister();
+   auto ecx = cg->allocateRegister();
    auto result = cg->allocateRegister();
 
    auto dependencies = generateRegisterDependencyConditions((uint8_t)7, (uint8_t)7, cg);
-   dependencies->addPreCondition(ba_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(off_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(len_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(limit_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(mask_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(i_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(chunk_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(end_of_chunk_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(shifted_mask_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(ecx_reg, TR::RealRegister::ecx, cg);
+   // dependencies->addPreCondition(ba, TR::RealRegister::NoReg, cg);
+   // dependencies->addPreCondition(off, TR::RealRegister::NoReg, cg);
+   // dependencies->addPreCondition(len, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(limit, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(mask, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(i, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(chunk, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(end_of_chunk, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(shifted_mask, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(ecx, TR::RealRegister::ecx, cg);
    dependencies->addPreCondition(result, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(ba_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(off_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(len_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(limit_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(mask_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(i_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(chunk_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(end_of_chunk_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(shifted_mask_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(ecx_reg, TR::RealRegister::ecx, cg);
+   // dependencies->addPostCondition(ba, TR::RealRegister::NoReg, cg);
+   // dependencies->addPostCondition(off, TR::RealRegister::NoReg, cg);
+   // dependencies->addPostCondition(len, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(limit, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(mask, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(i, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(chunk, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(end_of_chunk, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(shifted_mask, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(ecx, TR::RealRegister::ecx, cg);
    dependencies->addPostCondition(result, TR::RealRegister::NoReg, cg);
 
    // Labels
@@ -10057,79 +10057,79 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // limit = off + len
    // MOV limit, 0
-   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, limit_reg, 0, cg);
+   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, limit, 0, cg);
    // ADD limit, off
-   generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit_reg, off_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit, off, cg);
    // ADD limit, len
-   generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit_reg, len_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit, len, cg);
 
    // Prepare 8 byte sign bit mask
    // MOV mask, 08080808080808080h
-   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, limit_reg, 0x8080808080808080, cg);
+   generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, mask, 0x8080808080808080, cg);
 
    // i = off
    // MOV i, off
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i_reg, off_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i, off, cg);
 
    // loop_start label
    generateLabelInstruction(TR::InstOpCode::label, node, loopLabel, cg);
 
    // Load 8 bytes from address [base + i]
    // MOV chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::MOVQRegMem, node, chunk_reg, generateX86MemoryReference(ba_reg, i_reg, 0, cg), cg);
+   generateRegMemInstruction(TR::InstOpCode::MOVQRegMem, node, chunk, generateX86MemoryReference(ba, i, 0, cg), cg);
 
    // Set index of the end of the chunk (end_of_chunk = i + 8)
    // MOV end_of_chunk, i
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, end_of_chunk_reg, i_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, end_of_chunk, i, cg);
    // ADD end_of_chunk, 8
-   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, end_of_chunk_reg, 8, cg);
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, end_of_chunk, 8, cg);
 
    // If end_of_chunk <= limit, all of the chunk is valid array data
    // CMP end_of_chunk, limit
-   generateRegRegInstruction(TR::InstOpCode::CMP8RegReg, node, end_of_chunk_reg, limit_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::CMP8RegReg, node, end_of_chunk, limit, cg);
    // JLE perform_mask
    generateLabelInstruction(TR::InstOpCode::JLE1, node, performMaskLabel, cg);
 
    // Otherwise, only some of the bytes in the chunk contain real array data
    // Prepare a mask that will mask out any non-array bits in the chunk
    // MOV shifted_mask, 0FFFFFFFFFFFFFFFFh
-   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, shifted_mask_reg, 0xFFFFFFFFFFFFFFFF, cg);
+   generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, shifted_mask, 0xFFFFFFFFFFFFFFFF, cg);
 
    // Shift the mask left by a number of bytes equal to the difference between limit and end_of_chunk
    // end_of_chunk should be guaranteed to be larger than limit here, since if it wasn't we would have skipped over this part
    // rcx = end_of_chunk - limit (number of bytes to be shifted)
    // MOV rcx, end_of_chunk
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx_reg, end_of_chunk_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx, end_of_chunk, cg);
    // SUB rcx, limit
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx_reg, limit_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx, limit, cg);
    // rcx *= 8 (number of bytes to be shifted)
    // SHL rcx, 3
-   generateRegImmInstruction(TR::InstOpCode::SHL8RegImm1, node, ecx_reg, 3, cg);
+   generateRegImmInstruction(TR::InstOpCode::SHL8RegImm1, node, ecx, 3, cg);
    // cl is the lowest 8 bits of rcx
    // SHR shifted_mask, cl
-   generateRegRegInstruction(TR::InstOpCode::SHR8RegCL, node, shifted_mask_reg, ecx_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::SHR8RegCL, node, shifted_mask, ecx, cg);
 
    // Mask the sign bit mask to only check sign bits that are part of the array
    // AND mask, shifted_mask
-   generateRegRegInstruction(TR::InstOpCode::AND8RegReg, node, mask_reg, shifted_mask_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::AND8RegReg, node, mask, shifted_mask, cg);
 
    // perform_mask label
    generateLabelInstruction(TR::InstOpCode::label, node, performMaskLabel, cg);
 
    // and the chunk with the sign bit mask
    // TEST chunk, mask
-   generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk_reg, mask_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk, mask, cg);
    // If the result is nonzero (i.e. at least one of the sign bits is set, break and return off)
    // JNZ return_off
    generateLabelInstruction(TR::InstOpCode::JNE1, node, returnOffLabel, cg);
 
    // i += 8
    // ADD i, 8
-   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i_reg, 8, cg);
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 8, cg);
 
    // If i < limit, jump back to the start of the loop
    // CMP i, limit
-   generateRegRegInstruction(TR::InstOpCode::CMP8RegReg, node, i_reg, limit_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::CMP8RegReg, node, i, limit, cg);
    // JL loop_start
    generateLabelInstruction(TR::InstOpCode::JL1, node, loopLabel, cg);
 
@@ -10138,7 +10138,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // result = len
    // MOV result, len
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, len_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, len, cg);
 
    // JMP end
    generateLabelInstruction(TR::InstOpCode::JMP1, node, endLabel, cg);
@@ -10148,22 +10148,21 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // result = off
    // MOV result, off
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, off_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, off, cg);
 
-   // JMP end
-   generateLabelInstruction(TR::InstOpCode::JMP1, node, endLabel, cg);
+   // end label
+   generateLabelInstruction(TR::InstOpCode::label, node, endLabel, cg);
 
-   cg->stopUsingRegister(ba_reg);
-   cg->stopUsingRegister(off_reg);
-   cg->stopUsingRegister(len_reg);
-   cg->stopUsingRegister(limit_reg);
-   cg->stopUsingRegister(mask_reg);
-   cg->stopUsingRegister(i_reg);
-   cg->stopUsingRegister(chunk_reg);
-   cg->stopUsingRegister(end_of_chunk_reg);
-   cg->stopUsingRegister(shifted_mask_reg);
-   cg->stopUsingRegister(ecx_reg);
-   cg->stopUsingRegister(cl_reg);
+   // cg->stopUsingRegister(ba);
+   // cg->stopUsingRegister(off);
+   // cg->stopUsingRegister(len);
+   cg->stopUsingRegister(limit);
+   cg->stopUsingRegister(mask);
+   cg->stopUsingRegister(i);
+   cg->stopUsingRegister(chunk);
+   cg->stopUsingRegister(end_of_chunk);
+   cg->stopUsingRegister(shifted_mask);
+   cg->stopUsingRegister(ecx);
 
    node->setRegister(result);
    for (int32_t i = 0; i < node->getNumChildren(); i++)
@@ -11901,9 +11900,9 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
 
    switch (symbol->getRecognizedMethod())
       {
-      cast TR::java_lang_StringCoding_countPositives:
+      case TR::java_lang_StringCoding_countPositives:
          {
-         return intrinsicCountPositives(node, cg);
+         return inlineCountPositives(node, cg);
          }
       case TR::java_nio_Bits_keepAlive:
       case TR::java_lang_ref_Reference_reachabilityFence:
