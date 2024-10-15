@@ -9987,16 +9987,16 @@ inlineCompareAndSwapNative(
  */
 static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    {
-   static uint8_t SIGNBITMASK[] =
-      {
-      0x80, 0x80, 0x80, 0x80,
-      0x80, 0x80, 0x80, 0x80,
-      };
-   static uint8_t SHIFTEDMASK[] =
-      {
-      0xFF, 0xFF, 0xFF, 0xFF,
-      0xFF, 0xFF, 0xFF, 0xFF,
-      };
+   // static uint8_t SIGNBITMASK[] =
+   //    {
+   //    0x80, 0x80, 0x80, 0x80,
+   //    0x80, 0x80, 0x80, 0x80,
+   //    };
+   // static uint8_t SHIFTEDMASK[] =
+   //    {
+   //    0xFF, 0xFF, 0xFF, 0xFF,
+   //    0xFF, 0xFF, 0xFF, 0xFF,
+   //    };
    
    // Arguments to countPositives
    // Byte array
@@ -10068,22 +10068,22 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // Prepare 8 byte sign bit mask
    // MOV mask, 08080808080808080h
-   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, limit_reg, SIGNBITMASK, cg);
+   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, limit_reg, 0x8080808080808080, cg);
 
    // i = off
    // MOV i, off
-   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, i_reg, off_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i_reg, off_reg, cg);
 
    // loop_start label
    generateLabelInstruction(TR::InstOpCode::label, node, loopLabel, cg);
 
    // Load 8 bytes from address [base + i]
    // MOV chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::MOVQRegMem, node, chunk_reg, generateX86MemoryReference(), cg);
+   generateRegMemInstruction(TR::InstOpCode::MOVQRegMem, node, chunk_reg, generateX86MemoryReference(ba_reg, i_reg, 0, cg), cg);
 
    // Set index of the end of the chunk (end_of_chunk = i + 8)
    // MOV end_of_chunk, i
-   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, end_of_chunk_reg, i_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, end_of_chunk_reg, i_reg, cg);
    // ADD end_of_chunk, 8
    generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, end_of_chunk_reg, 8, cg);
 
@@ -10096,15 +10096,15 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // Otherwise, only some of the bytes in the chunk contain real array data
    // Prepare a mask that will mask out any non-array bits in the chunk
    // MOV shifted_mask, 0FFFFFFFFFFFFFFFFh
-   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, shifted_mask_reg, SHIFTEDMASK, cg);
+   generateRegImmInstruction(TR::InstOpCode::MOV8RegImm64, node, shifted_mask_reg, 0xFFFFFFFFFFFFFFFF, cg);
 
    // Shift the mask left by a number of bytes equal to the difference between limit and end_of_chunk
    // end_of_chunk should be guaranteed to be larger than limit here, since if it wasn't we would have skipped over this part
    // rcx = end_of_chunk - limit (number of bytes to be shifted)
    // MOV rcx, end_of_chunk
-   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, rcx_reg, end_of_chunk_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, rcx_reg, end_of_chunk_reg, cg);
    // SUB rcx, limit
-   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, rcx_reg, limit_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, rcx_reg, limit_reg, cg);
    // rcx *= 8 (number of bytes to be shifted)
    // SHL rcx, 3
    generateRegImmInstruction(TR::InstOpCode::SHL8RegImm1, node, rcx_reg, 3, cg);
@@ -10141,7 +10141,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // result = len
    // MOV result, len
-   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, result, len_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, len_reg, cg);
 
    // JMP end
    generateLabelInstruction(TR::InstOpCode::JMP1, node, endLabel, cg);
@@ -10151,7 +10151,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // result = off
    // MOV result, off
-   generateRegRegInstruction(TR::InstOpCode::MOVQRegReg8, node, result, off_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, off_reg, cg);
 
    // JMP end
    generateLabelInstruction(TR::InstOpCode::JMP1, node, endLabel, cg);
