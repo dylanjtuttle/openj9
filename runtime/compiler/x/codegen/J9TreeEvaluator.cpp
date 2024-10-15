@@ -10015,8 +10015,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    auto chunk_reg = cg->allocateRegister();
    auto end_of_chunk_reg = cg->allocateRegister();
    auto shifted_mask_reg = cg->allocateRegister();
-   auto rcx_reg = cg->allocateRegister();
-   auto cl_reg = cg->allocateRegister();
+   auto ecx_reg = cg->allocateRegister();
    auto result = cg->allocateRegister();
 
    auto dependencies = generateRegisterDependencyConditions((uint8_t)7, (uint8_t)7, cg);
@@ -10029,8 +10028,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    dependencies->addPreCondition(chunk_reg, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(end_of_chunk_reg, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(shifted_mask_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(rcx_reg, TR::RealRegister::rcx, cg);
-   dependencies->addPreCondition(cl_reg, TR::RealRegister::cl, cg);
+   dependencies->addPreCondition(ecx_reg, TR::RealRegister::ecx, cg);
    dependencies->addPreCondition(result, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(ba_reg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(off_reg, TR::RealRegister::NoReg, cg);
@@ -10041,8 +10039,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    dependencies->addPostCondition(chunk_reg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(end_of_chunk_reg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(shifted_mask_reg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(rcx_reg, TR::RealRegister::rcx, cg);
-   dependencies->addPostCondition(cl_reg, TR::RealRegister::cl, cg);
+   dependencies->addPostCondition(ecx_reg, TR::RealRegister::ecx, cg);
    dependencies->addPostCondition(result, TR::RealRegister::NoReg, cg);
 
    // Labels
@@ -10102,15 +10099,15 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // end_of_chunk should be guaranteed to be larger than limit here, since if it wasn't we would have skipped over this part
    // rcx = end_of_chunk - limit (number of bytes to be shifted)
    // MOV rcx, end_of_chunk
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, rcx_reg, end_of_chunk_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx_reg, end_of_chunk_reg, cg);
    // SUB rcx, limit
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, rcx_reg, limit_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx_reg, limit_reg, cg);
    // rcx *= 8 (number of bytes to be shifted)
    // SHL rcx, 3
-   generateRegImmInstruction(TR::InstOpCode::SHL8RegImm1, node, rcx_reg, 3, cg);
+   generateRegImmInstruction(TR::InstOpCode::SHL8RegImm1, node, ecx_reg, 3, cg);
    // cl is the lowest 8 bits of rcx
    // SHR shifted_mask, cl
-   generateRegImmInstruction(TR::InstOpCode::SHR8RegCL, node, shifted_mask_reg, cl_reg, cg);
+   generateRegRegInstruction(TR::InstOpCode::SHR8RegCL, node, shifted_mask_reg, ecx_reg, cg);
 
    // Mask the sign bit mask to only check sign bits that are part of the array
    // AND mask, shifted_mask
@@ -10165,7 +10162,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    cg->stopUsingRegister(chunk_reg);
    cg->stopUsingRegister(end_of_chunk_reg);
    cg->stopUsingRegister(shifted_mask_reg);
-   cg->stopUsingRegister(rcx_reg);
+   cg->stopUsingRegister(ecx_reg);
    cg->stopUsingRegister(cl_reg);
 
    node->setRegister(result);
