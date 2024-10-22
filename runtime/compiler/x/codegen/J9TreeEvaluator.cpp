@@ -10048,7 +10048,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    auto loopLabel = generateLabelSymbol(cg);
    auto performMaskLabel = generateLabelSymbol(cg);
    auto returnLenLabel = generateLabelSymbol(cg);
-   auto returnOffLabel = generateLabelSymbol(cg);
+   auto returnIndexLabel = generateLabelSymbol(cg);
    begLabel->setStartInternalControlFlow();
    endLabel->setEndInternalControlFlow();
 
@@ -10116,16 +10116,16 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // perform_mask label
    generateLabelInstruction(TR::InstOpCode::label, node, performMaskLabel, cg);
 
-   // and the chunk with the sign bit mask
-   // TEST chunk, mask
-   generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk, mask, cg);
-   // If the result is nonzero (i.e. at least one of the sign bits is set, break and return off)
-   // JNZ return_off
-   generateLabelInstruction(TR::InstOpCode::JNE1, node, returnOffLabel, cg);
-
    // i += 8
    // ADD i, 8
    generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 8, cg);
+
+   // and the chunk with the sign bit mask
+   // TEST chunk, mask
+   generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk, mask, cg);
+   // If the result is nonzero (i.e. at least one of the sign bits is set, break and return index)
+   // JNZ return_index
+   generateLabelInstruction(TR::InstOpCode::JNE1, node, returnIndexLabel, cg);
 
    // If i < limit, jump back to the start of the loop
    // CMP i, limit
@@ -10143,12 +10143,16 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // JMP end
    generateLabelInstruction(TR::InstOpCode::JMP1, node, endLabel, cg);
 
-   // return_off label
-   generateLabelInstruction(TR::InstOpCode::label, node, returnOffLabel, cg);
+   // return_index label
+   generateLabelInstruction(TR::InstOpCode::label, node, returnIndexLabel, cg);
 
-   // result = off
-   // MOV result, off
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, off, cg);
+   // result = i - 8 - off
+   // MOV result, i
+   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, i, cg);
+   // SUB result, 8
+   generateRegImmInstruction(TR::InstOpCode::SUB8RegImm4, node, result, 8, cg);
+   // SUB result, off
+   generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, result, off, cg);
 
    // end label
    generateLabelInstruction(TR::InstOpCode::label, node, endLabel, cg);
@@ -11902,7 +11906,10 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
       {
       case TR::java_lang_StringCoding_countPositives:
          {
-         return inlineCountPositives(node, cg);
+         if (feGetEnv("replaceCountPositives") != NULL)
+            {
+            return inlineCountPositives(node, cg);
+            }
          }
       case TR::java_nio_Bits_keepAlive:
       case TR::java_lang_ref_Reference_reachabilityFence:
