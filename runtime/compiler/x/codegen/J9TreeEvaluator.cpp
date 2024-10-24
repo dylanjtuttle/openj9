@@ -10097,11 +10097,11 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // Shift the mask left by a number of bytes equal to the difference between limit and end_of_chunk
    // end_of_chunk should be guaranteed to be larger than limit here, since if it wasn't we would have skipped over this part
-   // rcx = end_of_chunk - limit (number of bytes to be shifted)
+   // rcx = end_of_chunk - limit (number of bits to be shifted)
    // MOV rcx, end_of_chunk
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx, end_of_chunk, cg);
    // SUB rcx, limit
-   generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, ecx, limit, cg);
+   generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, ecx, limit, cg);
    // rcx *= 8 (number of bytes to be shifted)
    // SHL rcx, 3
    generateRegImmInstruction(TR::InstOpCode::SHL8RegImm1, node, ecx, 3, cg);
@@ -11911,6 +11911,7 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
             return inlineCountPositives(node, cg);
             }
          }
+         break;
       case TR::java_nio_Bits_keepAlive:
       case TR::java_lang_ref_Reference_reachabilityFence:
          {
