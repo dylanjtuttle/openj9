@@ -9987,17 +9987,6 @@ inlineCompareAndSwapNative(
  */
 static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    {
-   static uint8_t SIGNBITMASK[] =
-      {
-      0x80, 0x80, 0x80, 0x80,
-      0x80, 0x80, 0x80, 0x80,
-      };
-   static uint8_t SHIFTEDMASK[] =
-      {
-      0xFF, 0xFF, 0xFF, 0xFF,
-      0xFF, 0xFF, 0xFF, 0xFF,
-      };
-   
    // Arguments to countPositives
    // Byte array
    auto ba = cg->evaluate(node->getChild(0));
@@ -10006,41 +9995,26 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // Length of byte array
    auto len = cg->evaluate(node->getChild(2));
 
-   // auto ba_reg = cg->allocateRegister();
-   // auto off_reg = cg->allocateRegister();
-   // auto len_reg = cg->allocateRegister();
    auto limit = cg->allocateRegister();
    auto mask = cg->allocateRegister();
    auto i = cg->allocateRegister();
    auto chunk = cg->allocateRegister();
-   // auto end_of_chunk = cg->allocateRegister();
-   // auto shifted_mask = cg->allocateRegister();
    auto bytes_left = cg->allocateRegister();
    auto ecx = cg->allocateRegister();
    auto result = cg->allocateRegister();
 
    auto dependencies = generateRegisterDependencyConditions((uint8_t)7, (uint8_t)7, cg);
-   // dependencies->addPreCondition(ba, TR::RealRegister::NoReg, cg);
-   // dependencies->addPreCondition(off, TR::RealRegister::NoReg, cg);
-   // dependencies->addPreCondition(len, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(limit, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(mask, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(i, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(chunk, TR::RealRegister::NoReg, cg);
-   // dependencies->addPreCondition(end_of_chunk, TR::RealRegister::NoReg, cg);
-   // dependencies->addPreCondition(shifted_mask, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(bytes_left, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(ecx, TR::RealRegister::ecx, cg);
    dependencies->addPreCondition(result, TR::RealRegister::NoReg, cg);
-   // dependencies->addPostCondition(ba, TR::RealRegister::NoReg, cg);
-   // dependencies->addPostCondition(off, TR::RealRegister::NoReg, cg);
-   // dependencies->addPostCondition(len, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(limit, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(mask, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(i, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(chunk, TR::RealRegister::NoReg, cg);
-   // dependencies->addPostCondition(end_of_chunk, TR::RealRegister::NoReg, cg);
-   // dependencies->addPostCondition(shifted_mask, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(bytes_left, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(ecx, TR::RealRegister::ecx, cg);
    dependencies->addPostCondition(result, TR::RealRegister::NoReg, cg);
@@ -10049,11 +10023,10 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    auto begLabel = generateLabelSymbol(cg);
    auto endLabel = generateLabelSymbol(cg);
    auto loopLabel = generateLabelSymbol(cg);
-   // auto performMaskLabel = generateLabelSymbol(cg);
    auto residualLabel = generateLabelSymbol(cg);
-   auto residual4Label = generateLabelSymbol(cg);
-   auto residual2Label = generateLabelSymbol(cg);
-   auto residual1Label = generateLabelSymbol(cg);
+   auto atLeast4Label = generateLabelSymbol(cg);
+   auto atLeast2Label = generateLabelSymbol(cg);
+   auto atLeast1Label = generateLabelSymbol(cg);
    auto residualTestLabel = generateLabelSymbol(cg);
    auto returnLenLabel = generateLabelSymbol(cg);
    auto returnIndexLabel = generateLabelSymbol(cg);
@@ -10130,15 +10103,15 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, bytes_left, i, cg);
 
 
-   // If there are 4 or more bytes left
-   // residual_4 label
-   generateLabelInstruction(TR::InstOpCode::label, node, residual4Label, cg);
+   // Case in which there are 4 or more bytes left
+   // at_least_4 label
+   generateLabelInstruction(TR::InstOpCode::label, node, atLeast4Label, cg);
 
-   // if bytes_left < 4, jump to residual_2
+   // if bytes_left < 4, jump to at_least_2
    // TEST bytes_left, 4
    generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 4, cg);
    // JZ residual_2
-   generateLabelInstruction(TR::InstOpCode::JE1, node, residual2Label, cg);
+   generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast2Label, cg);
 
    // OR the 4 bytes at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
@@ -10149,15 +10122,15 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 4, cg);
 
 
-   // If there are 2 or more bytes left
-   // residual_2 label
-   generateLabelInstruction(TR::InstOpCode::label, node, residual2Label, cg);
+   // Case in which there are 2 or more bytes left
+   // at_least_2 label
+   generateLabelInstruction(TR::InstOpCode::label, node, atLeast2Label, cg);
 
-   // if bytes_left < 2, jump to residual_1
+   // if bytes_left < 2, jump to at_least_1
    // TEST bytes_left, 2
    generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 2, cg);
    // JZ residual_1
-   generateLabelInstruction(TR::InstOpCode::JE1, node, residual1Label, cg);
+   generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast1Label, cg);
 
    // OR the 2 bytes at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
@@ -10168,9 +10141,9 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 2, cg);
 
 
-   // If there is 1 byte left
-   // residual_1 label
-   generateLabelInstruction(TR::InstOpCode::label, node, residual1Label, cg);
+   // Case in which there is 1 byte left
+   // at_least_1 label
+   generateLabelInstruction(TR::InstOpCode::label, node, atLeast1Label, cg);
 
    // if bytes_left < 1, jump to residual_test
    // TEST bytes_left, 1
