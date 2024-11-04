@@ -10194,9 +10194,12 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // return_index label
    generateLabelInstruction(TR::InstOpCode::label, node, returnIndexLabel, cg);
 
-   // result = i
+   // result = i - off
    // MOV result, i
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, i, cg);
+
+   // SUB result, off
+   generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, result, off, cg);
 
 
    // end label
