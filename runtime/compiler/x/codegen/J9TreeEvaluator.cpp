@@ -10037,13 +10037,15 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // Beginning label
    generateLabelInstruction(TR::InstOpCode::label, node, begLabel, cg);
 
+   generateInstruction(TR::InstOpCode::INT3, node, cg);
+
    // i = off
    // MOV i, off
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i, off, cg);
 
    // if len < 8, jump to handling the residual bytes
    // CMP len, 8
-   generateRegImmInstruction(TR::InstOpCode::CMP8RegReg, node, len, 8, cg);
+   generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, len, 8, cg);
    // JL residual
    generateLabelInstruction(TR::InstOpCode::JL1, node, residualLabel, cg);
 
@@ -10063,7 +10065,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // Load 8 bytes from address [base + i]
    // MOV chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::MOVQRegMem, node, chunk, generateX86MemoryReference(ba, i, 0, cg), cg);
+   generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
 
    // AND the chunk with the sign bit mask
    // TEST chunk, mask
@@ -10115,7 +10117,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // OR the 4 bytes at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::OR4RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, cg), cg);
+   generateRegMemInstruction(TR::InstOpCode::OR4RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
 
    // i += 4
    // ADD i, 4
@@ -10134,7 +10136,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // OR the 2 bytes at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::OR2RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, cg), cg);
+   generateRegMemInstruction(TR::InstOpCode::OR2RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
 
    // i += 2
    // ADD i, 2
@@ -10153,7 +10155,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // OR the byte at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::OR1RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, cg), cg);
+   generateRegMemInstruction(TR::InstOpCode::OR1RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
 
    // i += 1
    // ADD i, 1
@@ -11955,11 +11957,11 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
       {
       case TR::java_lang_StringCoding_countPositives:
          {
-         if (feGetEnv("replaceCountPositives") != NULL)
-            {
+         // if (feGetEnv("replaceCountPositives") != NULL)
+         //    {
             //printf("Yippee!\n");
             return inlineCountPositives(node, cg);
-            }
+            // }
          }
          break;
       case TR::java_nio_Bits_keepAlive:
