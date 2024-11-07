@@ -10024,6 +10024,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    auto endLabel = generateLabelSymbol(cg);
    auto loopLabel = generateLabelSymbol(cg);
    auto residualLabel = generateLabelSymbol(cg);
+   auto atLeast8Label = generateLabelSymbol(cg);
    auto atLeast4Label = generateLabelSymbol(cg);
    auto atLeast2Label = generateLabelSymbol(cg);
    auto atLeast1Label = generateLabelSymbol(cg);
@@ -10043,9 +10044,9 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // MOV i, off
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i, off, cg);
 
-   // if len < 8, jump to handling the residual bytes
-   // CMP len, 8
-   generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, len, 8, cg);
+   // if len < 16, jump to handling the residual bytes
+   // CMP len, 16
+   generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, len, 16, cg);
    // JL residual
    generateLabelInstruction(TR::InstOpCode::JL1, node, residualLabel, cg);
 
@@ -10084,14 +10085,14 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // SUB bytes_left, i
    generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, bytes_left, i, cg);
 
-   // If bytes_left >= 8, jump back to loop_start
-   // CMP bytes_left, 8
-   generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, bytes_left, 8, cg);
+   // If bytes_left >= 16, jump back to loop_start
+   // CMP bytes_left, 16
+   generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, bytes_left, 16, cg);
    // JL loop_start
    generateLabelInstruction(TR::InstOpCode::JGE1, node, loopLabel, cg);
 
 
-   // Otherwise, fall through to the section in which we deal with the residual (last 7 or fewer) bytes
+   // Otherwise, fall through to the section in which we deal with the residual (last 15 or fewer) bytes
    // residual label
    generateLabelInstruction(TR::InstOpCode::label, node, residualLabel, cg);
 
@@ -10105,6 +10106,25 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, bytes_left, i, cg);
 
 
+   // Case in which there are 8 or more bytes left
+   // at_least_8 label
+   generateLabelInstruction(TR::InstOpCode::label, node, atLeast8Label, cg);
+
+   // if bytes_left < 4, jump to at_least_4
+   // TEST bytes_left, 8
+   generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 8, cg);
+   // JZ at_least_4
+   generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast4Label, cg);
+
+   // OR the 8 bytes at address [ba + i] into the chunk register
+   // OR chunk, [ba + i]
+   generateRegMemInstruction(TR::InstOpCode::OR8RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+
+   // i += 8
+   // ADD i, 8
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 8, cg);
+
+
    // Case in which there are 4 or more bytes left
    // at_least_4 label
    generateLabelInstruction(TR::InstOpCode::label, node, atLeast4Label, cg);
@@ -10112,7 +10132,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // if bytes_left < 4, jump to at_least_2
    // TEST bytes_left, 4
    generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 4, cg);
-   // JZ residual_2
+   // JZ at_least_2
    generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast2Label, cg);
 
    // OR the 4 bytes at address [ba + i] into the chunk register
@@ -10131,7 +10151,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // if bytes_left < 2, jump to at_least_1
    // TEST bytes_left, 2
    generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 2, cg);
-   // JZ residual_1
+   // JZ at_least_1
    generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast1Label, cg);
 
    // OR the 2 bytes at address [ba + i] into the chunk register
@@ -11959,7 +11979,7 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
          {
          // if (feGetEnv("replaceCountPositives") != NULL)
          //    {
-            //printf("Yippee!\n");
+            printf("Entering inline code!\n");
             return inlineCountPositives(node, cg);
             // }
          }
