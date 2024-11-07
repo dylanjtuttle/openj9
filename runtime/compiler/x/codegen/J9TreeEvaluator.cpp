@@ -10040,6 +10040,8 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    generateInstruction(TR::InstOpCode::INT3, node, cg);
 
+   printf("Currently generating code, just generated an INT3\n");
+
    // i = off
    // MOV i, off
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i, off, cg);
@@ -10191,8 +10193,8 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, i, bytes_left, cg);
 
    // Prepare another mask for the residual bytes
-   // MOV mask, 080808080h
-   generateRegImmInstruction(TR::InstOpCode::MOV4RegImm4, node, mask, 0x80808080, cg);
+   // MOV mask, 08080808080808080h
+   generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, mask, 0x8080808080808080, cg);
 
    // AND the residual bytes with the new mask
    // TEST chunk, mask
