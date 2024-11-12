@@ -10038,25 +10038,26 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // Beginning label
    generateLabelInstruction(TR::InstOpCode::label, node, begLabel, cg);
 
-   generateInstruction(TR::InstOpCode::INT3, node, cg);
-
-   printf("Currently generating code, just generated an INT3\n");
+   if (feGetEnv("debugCountPositives") != NULL)
+      {
+      generateInstruction(TR::InstOpCode::INT3, node, cg);
+      }
 
    // i = off
    // MOV i, off
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i, off, cg);
-
-   // if len < 16, jump to handling the residual bytes
-   // CMP len, 16
-   generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, len, 16, cg);
-   // JL residual
-   generateLabelInstruction(TR::InstOpCode::JL1, node, residualLabel, cg);
 
    // limit = off + len
    // MOV limit, off
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, limit, off, cg);
    // ADD limit, len
    generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit, len, cg);
+
+   // if len < 16, jump to handling the residual bytes
+   // CMP len, 16
+   generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, len, 16, cg);
+   // JL residual
+   generateLabelInstruction(TR::InstOpCode::JL1, node, residualLabel, cg);
 
    // Prepare 8 byte sign bit mask
    // MOV mask, 08080808080808080h
@@ -10072,10 +10073,14 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // AND the chunk with the sign bit mask
    // TEST chunk, mask
+   //generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, chunk, 0x0807060504030201, cg);
    generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk, mask, cg);
    // If the result is nonzero (i.e. at least one of the sign bits is set), break and return index
    // JNZ return_index
-   generateLabelInstruction(TR::InstOpCode::JNE1, node, returnIndexLabel, cg);
+   //generateLabelInstruction(TR::InstOpCode::JE4, node, returnIndexLabel, cg);
+   //generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, chunk, cg);
+   //generateLabelInstruction(TR::InstOpCode::JMP4, node, endLabel, cg);
+   generateLabelInstruction(TR::InstOpCode::JNE4, node, returnIndexLabel, cg);
 
    // i += 8
    // ADD i, 8
@@ -10108,53 +10113,34 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, bytes_left, i, cg);
 
 
-   // Case in which there are 8 or more bytes left
-   // at_least_8 label
-   generateLabelInstruction(TR::InstOpCode::label, node, atLeast8Label, cg);
+   // Case in which there is 1 or more residual bytes
+   // at_least_1 label
+   generateLabelInstruction(TR::InstOpCode::label, node, atLeast1Label, cg);
 
-   // if bytes_left < 4, jump to at_least_4
-   // TEST bytes_left, 8
-   generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 8, cg);
-   // JZ at_least_4
-   generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast4Label, cg);
-
-   // OR the 8 bytes at address [ba + i] into the chunk register
-   // OR chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::OR8RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
-
-   // i += 8
-   // ADD i, 8
-   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 8, cg);
-
-
-   // Case in which there are 4 or more bytes left
-   // at_least_4 label
-   generateLabelInstruction(TR::InstOpCode::label, node, atLeast4Label, cg);
-
-   // if bytes_left < 4, jump to at_least_2
-   // TEST bytes_left, 4
-   generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 4, cg);
+   // if there isn't a byte left, jump to at_least_2
+   // TEST bytes_left, 1
+   generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 1, cg);
    // JZ at_least_2
    generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast2Label, cg);
 
-   // OR the 4 bytes at address [ba + i] into the chunk register
+   // OR the byte at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::OR4RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+   generateRegMemInstruction(TR::InstOpCode::OR1RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
 
-   // i += 4
-   // ADD i, 4
-   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 4, cg);
+   // i += 1
+   // ADD i, 1
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 1, cg);
 
 
-   // Case in which there are 2 or more bytes left
+   // Case in which there are 2 or more residual bytes
    // at_least_2 label
    generateLabelInstruction(TR::InstOpCode::label, node, atLeast2Label, cg);
 
-   // if bytes_left < 2, jump to at_least_1
+   // if there aren't 2 bytes left, jump to at_least_4
    // TEST bytes_left, 2
    generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 2, cg);
-   // JZ at_least_1
-   generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast1Label, cg);
+   // JZ at_least_4
+   generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast4Label, cg);
 
    // OR the 2 bytes at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
@@ -10165,23 +10151,42 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 2, cg);
 
 
-   // Case in which there is 1 byte left
-   // at_least_1 label
-   generateLabelInstruction(TR::InstOpCode::label, node, atLeast1Label, cg);
+   // Case in which there are 4 or more residual bytes
+   // at_least_4 label
+   generateLabelInstruction(TR::InstOpCode::label, node, atLeast4Label, cg);
 
-   // if bytes_left < 1, jump to residual_test
-   // TEST bytes_left, 1
-   generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 1, cg);
+   // if there aren't 4 bytes left, jump to at_least_8
+   // TEST bytes_left, 4
+   generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 4, cg);
+   // JZ at_least_8
+   generateLabelInstruction(TR::InstOpCode::JE1, node, atLeast8Label, cg);
+
+   // OR the 4 bytes at address [ba + i] into the chunk register
+   // OR chunk, [ba + i]
+   generateRegMemInstruction(TR::InstOpCode::OR4RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+
+   // i += 4
+   // ADD i, 4
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 4, cg);
+
+
+   // Case in which there are 8 or more residual bytes
+   // at_least_8 label
+   generateLabelInstruction(TR::InstOpCode::label, node, atLeast8Label, cg);
+
+   // if there aren't 8 bytes left, jump to residual_test
+   // TEST bytes_left, 8
+   generateRegImmInstruction(TR::InstOpCode::TEST8RegImm4, node, bytes_left, 8, cg);
    // JZ residual_test
    generateLabelInstruction(TR::InstOpCode::JE1, node, residualTestLabel, cg);
 
-   // OR the byte at address [ba + i] into the chunk register
+   // OR the 8 bytes at address [ba + i] into the chunk register
    // OR chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::OR1RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+   generateRegMemInstruction(TR::InstOpCode::OR8RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
 
-   // i += 1
-   // ADD i, 1
-   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 1, cg);
+   // i += 8
+   // ADD i, 8
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 8, cg);
 
 
    // Examine the chunk register now that all of the residual bytes have been ORed into it
@@ -10198,7 +10203,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
 
    // AND the residual bytes with the new mask
    // TEST chunk, mask
-   generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, chunk, mask, cg);
+   generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk, mask, cg);
    // If the result is nonzero (i.e. at least one of the sign bits is set), return index
    // JNZ return_index
    generateLabelInstruction(TR::InstOpCode::JNE1, node, returnIndexLabel, cg);
@@ -10221,6 +10226,7 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // result = i - off
    // MOV result, i
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, i, cg);
+   //generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, result, chunk, cg);
 
    // SUB result, off
    generateRegRegInstruction(TR::InstOpCode::SUB8RegReg, node, result, off, cg);
@@ -11981,7 +11987,6 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
          {
          // if (feGetEnv("replaceCountPositives") != NULL)
          //    {
-            printf("Entering inline code!\n");
             return inlineCountPositives(node, cg);
             // }
          }
