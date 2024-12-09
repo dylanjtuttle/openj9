@@ -9996,24 +9996,30 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    auto len = cg->evaluate(node->getChild(2));
 
    auto limit = cg->allocateRegister();
+   auto xmmmask = cg->allocateRegister();
    auto mask = cg->allocateRegister();
    auto i = cg->allocateRegister();
+   auto xmmchunk = cg->allocateRegister();
    auto chunk = cg->allocateRegister();
    auto bytes_left = cg->allocateRegister();
    auto ecx = cg->allocateRegister();
    auto result = cg->allocateRegister();
 
-   auto dependencies = generateRegisterDependencyConditions((uint8_t)7, (uint8_t)7, cg);
+   auto dependencies = generateRegisterDependencyConditions((uint8_t)9, (uint8_t)9, cg);
    dependencies->addPreCondition(limit, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(xmmmask, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(mask, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(i, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(xmmchunk, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(chunk, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(bytes_left, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(ecx, TR::RealRegister::ecx, cg);
    dependencies->addPreCondition(result, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(limit, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(xmmmask, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(mask, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(i, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(xmmchunk, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(chunk, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(bytes_left, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(ecx, TR::RealRegister::ecx, cg);
@@ -10052,10 +10058,6 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // ADD limit, len
    generateRegRegInstruction(TR::InstOpCode::ADD8RegReg, node, limit, len, cg);
 
-   // Prepare 8 byte sign bit mask
-   // MOV mask, 0x8080808080808080
-   generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, mask, 0x8080808080808080, cg);
-
    // if len < 16, jump to handling the residual bytes
    // CMP len, 16
    generateRegImmInstruction(TR::InstOpCode::CMP8RegImm4, node, len, 16, cg);
@@ -10063,23 +10065,32 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateLabelInstruction(TR::InstOpCode::JL1, node, residualLabel, cg);
 
 
+   // Prepare a 16 byte sign bit mask
+   // MOV xmmmask, 0x80808080808080808080808080808080
+   static uint8_t dqMaskBytes[] = { 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 };
+   auto dqMaskMR = generateX86MemoryReference(cg->findOrCreate16ByteConstant(node, dqMaskBytes), cg);
+   generateRegMemInstruction(TR::InstOpCode::MOVDQURegMem, node, xmmmask, dqMaskMR, cg);
+
+
    // loop_start label
    generateLabelInstruction(TR::InstOpCode::label, node, loopLabel, cg);
 
-   // Load 8 bytes from address [base + i]
-   // MOV chunk, [ba + i]
-   generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+   // Load 16 bytes from address [base + i]
+   // MOV xmmchunk, [ba + i]
+   generateRegMemInstruction(TR::InstOpCode::MOVDQURegMem, node, xmmchunk, generateX86MemoryReference(ba, i, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
 
    // AND the chunk with the sign bit mask
-   // TEST chunk, mask
-   generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk, mask, cg);
+   // PTEST xmmchunk, xmmmask
+   generateRegRegInstruction(TR::InstOpCode::PTESTRegReg, node, xmmchunk, xmmmask, cg);
+
+   //generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunk, mask, cg);
    // If the result is nonzero (i.e. at least one of the sign bits is set), break and return index
    // JNZ return_index
    generateLabelInstruction(TR::InstOpCode::JNE4, node, returnIndexLabel, cg);
 
-   // i += 8
-   // ADD i, 8
-   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 8, cg);
+   // i += 16
+   // ADD i, 16
+   generateRegImmInstruction(TR::InstOpCode::ADD8RegImm4, node, i, 16, cg);
 
    // bytes_left = limit - i
    // MOV bytes_left, limit
@@ -10097,6 +10108,14 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    // Otherwise, fall through to the section in which we deal with the residual (last 15 or fewer) bytes
    // residual label
    generateLabelInstruction(TR::InstOpCode::label, node, residualLabel, cg);
+
+   // Prepare an 8 byte sign bit mask
+   // MOV mask, 0x8080808080808080
+   generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, mask, 0x8080808080808080, cg);
+
+   // Zero out the chunk register
+   // XOR chunk, chunk
+   generateRegRegInstruction(TR::InstOpCode::XOR8RegReg, node, chunk, chunk, cg);
 
    // bytes_left = limit - i
    // MOV bytes_left, limit
@@ -10255,8 +10274,10 @@ static TR::Register* inlineCountPositives(TR::Node* node, TR::CodeGenerator* cg)
    generateLabelInstruction(TR::InstOpCode::label, node, endLabel, cg);
 
    cg->stopUsingRegister(limit);
+   cg->stopUsingRegister(xmmmask);
    cg->stopUsingRegister(mask);
    cg->stopUsingRegister(i);
+   cg->stopUsingRegister(xmmchunk);
    cg->stopUsingRegister(chunk);
    cg->stopUsingRegister(bytes_left);
    cg->stopUsingRegister(ecx);
