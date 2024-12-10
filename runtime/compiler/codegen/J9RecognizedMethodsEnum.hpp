@@ -1222,6 +1222,7 @@
    java_lang_StringCoding_encodeASCII,
    java_lang_StringCoding_encodeUTF8,
    java_lang_StringCoding_countPositives,
+   java_lang_StringCoding_hasNegatives,
 
    java_util_Arrays_copyOf_byte,
    java_util_Arrays_copyOf_short,
