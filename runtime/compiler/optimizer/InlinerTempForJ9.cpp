@@ -5341,9 +5341,6 @@ TR_J9InlinerPolicy::supressInliningRecognizedInitialCallee(TR_CallSite* callsite
 
       case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readFloat_:
       case TR::com_ibm_dataaccess_ByteArrayUnmarshaller_readDouble_:
-
-      case TR::java_lang_StringCoding_countPositives:
-      // case TR::java_lang_StringCoding_hasNegatives:
        if (!comp->getOption(TR_DisableMarshallingIntrinsics))
           return true;
        break;
@@ -5555,6 +5552,9 @@ TR_J9InlinerPolicy::supressInliningRecognizedInitialCallee(TR_CallSite* callsite
             return true;
             }
          break;
+      case TR::java_lang_StringCoding_countPositives:
+      case TR::java_lang_StringCoding_hasNegatives:
+         return true;
       default:
          break;
       }
