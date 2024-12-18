@@ -10295,10 +10295,6 @@ static TR::Register* inlineHasNegatives(TR::Node* node, TR::CodeGenerator* cg)
    // Beginning label
    generateLabelInstruction(TR::InstOpCode::label, node, begLabel, cg);
 
-   if (feGetEnv("debugHasNegatives") != NULL) {
-      generateInstruction(TR::InstOpCode::INT3, node, cg);
-   }
-
    // i = off
    generateRegRegInstruction(TR::InstOpCode::MOV8RegReg, node, i, off, cg);
 

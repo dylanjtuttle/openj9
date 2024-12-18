@@ -5554,7 +5554,10 @@ TR_J9InlinerPolicy::supressInliningRecognizedInitialCallee(TR_CallSite* callsite
          break;
       case TR::java_lang_StringCoding_countPositives:
       case TR::java_lang_StringCoding_hasNegatives:
-         return true;
+         if (comp->target().cpu.supportsAVX())
+            {
+            return true;
+            }
       default:
          break;
       }
