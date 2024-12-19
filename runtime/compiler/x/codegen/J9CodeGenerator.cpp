@@ -143,13 +143,13 @@ J9::X86::CodeGenerator::initialize()
       }
    
    static bool disableInlineStringCodingHasNegatives = feGetEnv("TR_DisableInlineStringCodingHasNegatives") != NULL;
-   if (!TR::Compiler->target().cpu.supportsAVX() && !disableInlineStringCodingHasNegatives &&
+   if (!comp->target().cpu.supportsAVX() && !disableInlineStringCodingHasNegatives &&
         !TR::Compiler->om.canGenerateArraylets())
       {
       cg->setSupportsInlineStringCodingHasNegatives();
       }
    static bool disableInlineStringCodingCountPositives = feGetEnv("TR_DisableInlineStringCodingCountPositives") != NULL;
-   if (!TR::Compiler->target().cpu.supportsAVX() && !disableInlineStringCodingCountPositives &&
+   if (!comp->target().cpu.supportsAVX() && !disableInlineStringCodingCountPositives &&
          !TR::Compiler->om.canGenerateArraylets())
       {
       cg->setSupportsInlineStringCodingCountPositives();
