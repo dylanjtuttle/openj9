@@ -12639,6 +12639,11 @@ J9::X86::TreeEvaluator::directCallEvaluator(TR::Node *node, TR::CodeGenerator *c
          {
          if (cg->comp()->target().is64Bit())
             {
+            if (symbol->getRecognizedMethod() == TR::java_lang_StringCoding_countPositives) {
+               printf("QQQQQ - inserting countPositives into %s\n", cg->comp()->signature());
+            } else {
+               printf("QQQQQ - inserting hasNegatives into %s\n", cg->comp()->signature());
+            }
             return inlineHasNegativesOrCountPositives(node, symbol->getRecognizedMethod(), cg);
             }
          }
