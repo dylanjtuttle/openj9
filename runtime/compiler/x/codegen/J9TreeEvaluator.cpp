@@ -10668,7 +10668,9 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, indexReg, offsetReg, cg);
 
    // limit = offset + length
-   generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, limitReg, generateX86MemoryReference(offsetReg, lengthReg, 0, 0, cg), cg);
+   auto memRef = generateX86MemoryReference(offsetReg, lengthReg, 0, 0, cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, limitReg, memRef, cg);
 
    // loopLimit = (length & -16) + offset
    generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, loopLimitReg, lengthReg, cg);
@@ -10695,7 +10697,9 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    if (useVectorInstructions)
       {
       // Load 16 bytes from address [buf + index]
-      generateRegMemInstruction(TR::InstOpCode::MOVDQURegMem, node, xmmChunkReg, generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+      memRef = generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg);
+      TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+      generateRegMemInstruction(TR::InstOpCode::MOVDQURegMem, node, xmmChunkReg, memRef, cg);
 
       // Extract bitmask of sign bits
       generateRegRegInstruction(TR::InstOpCode::PMOVMSKB4RegReg, node, maskReg, xmmChunkReg, cg, pmovmskbEncoding);
@@ -10708,7 +10712,9 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    else
       {
       // Load 8 bytes from address [buf + index]
-      generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+      memRef = generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg);
+      TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+      generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunkReg, memRef, cg);
 
       // Check if any negative values exist
       generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunkReg, maskReg, cg);
@@ -10791,9 +10797,13 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
 
    // Case in which there are one or two residual bytes
    // Load the byte at address [buf + index] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::L1RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+   memRef = generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::L1RegMem, node, chunkReg, memRef, cg);
    // OR the second byte (which is the same byte again in the 1 byte case)
-   generateRegMemInstruction(TR::InstOpCode::OR1RegMem, node, chunkReg, generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 1, cg), cg);
+   memRef = generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 1, cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::OR1RegMem, node, chunkReg, memRef, cg);
 
    generateLabelInstruction(TR::InstOpCode::JMP4, node, residualTestLabel, cg);
 
@@ -10806,9 +10816,13 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    generateLabelInstruction(TR::InstOpCode::JG4, node, fiveOrMoreBytesLabel, cg);
 
    // Load the first two bytes at address [buf + index] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::L2RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+   memRef = generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::L2RegMem, node, chunkReg, memRef, cg);
    // OR the second two bytes at address [buf + (limit - 2)] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::OR2RegMem, node, chunkReg, generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 2, cg), cg);
+   memRef = generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 2, cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::OR2RegMem, node, chunkReg, memRef, cg);
 
    generateLabelInstruction(TR::InstOpCode::JMP4, node, residualTestLabel, cg);
 
@@ -10817,9 +10831,13 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    generateLabelInstruction(TR::InstOpCode::label, node, fiveOrMoreBytesLabel, cg);
 
    // Load the first four bytes at address [buf + index] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+   memRef = generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::L4RegMem, node, chunkReg, memRef, cg);
    // OR the second four bytes at address [buf + (limit - 4)] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::OR4RegMem, node, chunkReg, generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 4, cg), cg);
+   memRef = generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 4, cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::OR4RegMem, node, chunkReg, memRef, cg);
 
    generateLabelInstruction(TR::InstOpCode::JMP4, node, residualTestLabel, cg);
 
@@ -10828,9 +10846,13 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    generateLabelInstruction(TR::InstOpCode::label, node, nineOrMoreBytesLabel, cg);
 
    // Load the first eight bytes at address [buf + index] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg), cg);
+   memRef = generateX86MemoryReference(bufReg, indexReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes(), cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunkReg, memRef, cg);
    // OR the second eight bytes at address [buf + (limit - 8)] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::OR8RegMem, node, chunkReg, generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 8, cg), cg);
+   memRef = generateX86MemoryReference(bufReg, limitReg, 0, TR::Compiler->om.contiguousArrayHeaderSizeInBytes() - 8, cg);
+   TR_ASSERT_FATAL(memRef->getAddressRegister() == NULL, "Unexpected address register in memory reference");
+   generateRegMemInstruction(TR::InstOpCode::OR8RegMem, node, chunkReg, memRef, cg);
 
 
    // Examine the chunk register now that all of the residual bytes have been ORed into it
