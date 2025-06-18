@@ -10599,47 +10599,60 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    // The offset of the start of array data
    int32_t offsetToDataElements = TR::Compiler->om.contiguousArrayHeaderSizeInBytes();
 
-   // A key part of the main loop of this algorithm is the pmovmskb instruction,
-   // which extracts the sign bits from a source register and collects them into a destination register
-   // We need to specify the encoding of this instruction so that the code generator knows we want the 16 byte version
+   // Ensure we specify the encoding of the various vector instructions used in this algorithm
    TR::InstOpCode pmovmskb = TR::InstOpCode::PMOVMSKB4RegReg;
-   OMR::X86::Encoding pmovmskbEncoding = pmovmskb.getSIMDEncoding(&cg->comp()->target().cpu, TR::VectorLength128);
-   static bool disableSIMDHasNegativesCountPositives = feGetEnv("TR_disableSIMDHasNegativesCountPositives") != NULL;
-   bool useVectorInstructions = (pmovmskbEncoding != OMR::X86::Encoding::Bad) && !disableSIMDHasNegativesCountPositives;
+   TR::InstOpCode vpmovb2m = TR::InstOpCode::VPMOVB2MRegReg;
+   OMR::X86::Encoding pmovmskbEncoding128Bit = pmovmskb.getSIMDEncoding(&cg->comp()->target().cpu, TR::VectorLength128);
+   OMR::X86::Encoding pmovmskbEncoding256Bit = pmovmskb.getSIMDEncoding(&cg->comp()->target().cpu, TR::VectorLength256);
+   OMR::X86::Encoding vpmovb2mEncoding512Bit = vpmovb2m.getSIMDEncoding(&cg->comp()->target().cpu, TR::VectorLength128);
 
-   TR::Register *loopLimitReg = cg->allocateRegister();
-   TR::Register *limitReg = cg->allocateRegister();
-   TR::Register *maskReg = cg->allocateRegister();
+   static bool disableSIMDHasNegativesCountPositives = feGetEnv("TR_disableSIMDHasNegativesCountPositives") != NULL;
+   bool useVectorInstructions = (pmovmskbEncoding128Bit != OMR::X86::Encoding::Bad)
+                                && (pmovmskbEncoding256Bit != OMR::X86::Encoding::Bad)
+                                && (vpmovb2mEncoding512Bit != OMR::X86::Encoding::Bad)
+                                && !disableSIMDHasNegativesCountPositives;
+
    TR::Register *indexReg = cg->allocateRegister();
+   TR::Register *limitReg = cg->allocateRegister();
+   TR::Register *bytesLeftReg = cg->allocateRegister();
+   TR::Register *maskReg = cg->allocateRegister();
    TR::Register *chunkReg = cg->allocateRegister();
    TR::Register *xmmChunkReg = NULL;
+   TR::Register *ymmChunkReg = NULL;
+   TR::Register *zmmChunkReg = NULL;
    if (useVectorInstructions)
       {
       xmmChunkReg = cg->allocateRegister(TR_VRF);
+      ymmChunkReg = cg->allocateRegister(TR_VRF);
+      zmmChunkReg = cg->allocateRegister(TR_VRF);
       }
-
-   uint8_t numDependencies = useVectorInstructions ? 9 : 8;
+   
+   uint8_t numDependencies = useVectorInstructions ? 11 : 8;
    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(numDependencies, numDependencies, cg);
    dependencies->addPreCondition(bufReg, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(offsetReg, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(lengthReg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(loopLimitReg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(limitReg, TR::RealRegister::NoReg, cg);
-   dependencies->addPreCondition(maskReg, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(indexReg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(limitReg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(bytesLeftReg, TR::RealRegister::NoReg, cg);
+   dependencies->addPreCondition(maskReg, TR::RealRegister::NoReg, cg);
    dependencies->addPreCondition(chunkReg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(bufReg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(offsetReg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(lengthReg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(loopLimitReg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(limitReg, TR::RealRegister::NoReg, cg);
-   dependencies->addPostCondition(maskReg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(indexReg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(limitReg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(bytesLeftReg, TR::RealRegister::NoReg, cg);
+   dependencies->addPostCondition(maskReg, TR::RealRegister::NoReg, cg);
    dependencies->addPostCondition(chunkReg, TR::RealRegister::NoReg, cg);
    if (useVectorInstructions)
       {
       dependencies->addPreCondition(xmmChunkReg, TR::RealRegister::NoReg, cg);
+      dependencies->addPreCondition(ymmChunkReg, TR::RealRegister::NoReg, cg);
+      dependencies->addPreCondition(zmmChunkReg, TR::RealRegister::NoReg, cg);
       dependencies->addPostCondition(xmmChunkReg, TR::RealRegister::NoReg, cg);
+      dependencies->addPostCondition(ymmChunkReg, TR::RealRegister::NoReg, cg);
+      dependencies->addPostCondition(zmmChunkReg, TR::RealRegister::NoReg, cg);
       }
    dependencies->stopAddingConditions();
 
@@ -10647,11 +10660,14 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    TR::LabelSymbol *begLabel = generateLabelSymbol(cg);
    TR::LabelSymbol *endLabel = generateLabelSymbol(cg);
    TR::LabelSymbol *loopLabel = generateLabelSymbol(cg);
+   TR::LabelSymbol *chunk8ByteLabel = generateLabelSymbol(cg);
+   TR::LabelSymbol *chunk16ByteLabel = generateLabelSymbol(cg);
+   TR::LabelSymbol *chunk32ByteLabel = generateLabelSymbol(cg);
    TR::LabelSymbol *residualLabel = generateLabelSymbol(cg);
    TR::LabelSymbol *threeOrMoreBytesLabel = generateLabelSymbol(cg);
    TR::LabelSymbol *fiveOrMoreBytesLabel = generateLabelSymbol(cg);
-   TR::LabelSymbol *nineOrMoreBytesLabel = generateLabelSymbol(cg);
    TR::LabelSymbol *residualTestLabel = generateLabelSymbol(cg);
+   TR::LabelSymbol *foundNegativeLabel = NULL;
    TR::LabelSymbol *returnNoNegativesLabel = NULL;
    TR::LabelSymbol *returnHasNegativesLabel = NULL;
    TR::LabelSymbol *returnBooleanLabel = NULL;
@@ -10661,6 +10677,7 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
       }
    else
       {
+      foundNegativeLabel = generateLabelSymbol(cg);
       returnNoNegativesLabel = generateLabelSymbol(cg);
       returnHasNegativesLabel = generateLabelSymbol(cg);
       }
@@ -10688,13 +10705,12 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    // limit = offset + length
    generateRegMemInstruction(TR::InstOpCode::LEA4RegMem, node, limitReg, generateX86MemoryReference(offsetReg, lengthReg, 0, 0, cg), cg);
 
-   // loopLimit = (length & -16) + offset
-   generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, loopLimitReg, lengthReg, cg);
-   generateRegImmInstruction(TR::InstOpCode::AND4RegImm4, node, loopLimitReg, -16, cg);
-   generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, node, loopLimitReg, offsetReg, cg);
+   // if length = 0, jump straight to returnNoNegativesLabel
+   generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, lengthReg, lengthReg, cg);
+   generateLabelInstruction(TR::InstOpCode::JE4, node, returnNoNegativesLabel, cg);
 
-   // If the 16 byte encoding of the pmovmskb instruction is not supported on this architecture,
-   // Prepare an 8 byte sign bit mask so we can run an alternate version of the algorithm
+   // If we are not using vector instructions,
+   // prepare an 8 byte sign bit mask so we can run an alternate version of the algorithm
    if (!useVectorInstructions)
       {
       generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, maskReg, 0x8080808080808080, cg);
@@ -10703,77 +10719,180 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
 
    generateLabelInstruction(TR::InstOpCode::label, node, loopLabel, cg);
 
-   // if index >= loopLimit, jump to handling the residual bytes
-   generateRegRegInstruction(TR::InstOpCode::CMP4RegReg, node, indexReg, loopLimitReg, cg);
-   generateLabelInstruction(TR::InstOpCode::JGE4, node, residualLabel, cg);
+   // bytesLeft = limit - index
+   generateRegRegInstruction(TR::InstOpCode::MOV4RegReg, node, bytesLeftReg, limitReg, cg);
+   generateRegRegInstruction(TR::InstOpCode::SUB4RegReg, node, bytesLeftReg, indexReg, cg);
 
+   // if bytesLeft < 8, jump to handling the residual bytes
+   generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, bytesLeftReg, 8, cg);
+   generateLabelInstruction(TR::InstOpCode::JL4, node, residualLabel, cg);
 
-   // If the 16 byte version of pmovmskb is supported on this architecture,
-   // we can proceed to generate code for the loop
-   if (useVectorInstructions)
-      {
-      // Load 16 bytes from address [buf + index]
-      generateRegMemInstruction(TR::InstOpCode::MOVDQURegMem, node, xmmChunkReg, generateX86MemoryReference(bufReg, indexReg, 0, offsetToDataElements, cg), cg);
-
-      // Extract bitmask of sign bits
-      generateRegRegInstruction(TR::InstOpCode::PMOVMSKB4RegReg, node, maskReg, xmmChunkReg, cg, pmovmskbEncoding);
-
-      // Check if any negative values exist
-      generateRegRegInstruction(TR::InstOpCode::TEST2RegReg, node, maskReg, maskReg, cg);
-      }
-   // If the 16 byte version of pmovmskb is not supported,
-   // run an alternate version of the loop with an 8 byte chunk instead of a 16 byte chunk
-   else
+   // If we are not using vector instructions, run a simple version of the loop that operates on 8 byte chunks
+   if (!useVectorInstructions)
       {
       // Load 8 bytes from address [buf + index]
       generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, offsetToDataElements, cg), cg);
 
       // Check if any negative values exist
       generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, chunkReg, maskReg, cg);
+
+      // If the result is nonzero, we found at least one negative byte
+      generateLabelInstruction(TR::InstOpCode::JNE4,
+                               node,
+                               isHasNegatives ? returnBooleanLabel : returnHasNegativesLabel,
+                               cg);
+      
+      // increment index by 8 and jump back to the top of the loop
+      generateRegImmInstruction(TR::InstOpCode::ADD4RegImm4, node, indexReg, 8, cg);
+      generateLabelInstruction(TR::InstOpCode::JMP4, node, loopLabel, cg);
+      }
+   // Otherwise, run the vectorized version of the loop
+   else
+      {
+      // If bytesLeft < 16, consume an 8 byte chunk
+      generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, bytesLeftReg, 16, cg);
+      generateLabelInstruction(TR::InstOpCode::JL4, node, chunk8ByteLabel, cg);
+
+      // If bytesLeft < 32, consume a 16 byte chunk
+      generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, bytesLeftReg, 32, cg);
+      generateLabelInstruction(TR::InstOpCode::JL4, node, chunk16ByteLabel, cg);
+
+      // If bytesLeft < 64, consume a 32 byte chunk
+      generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, bytesLeftReg, 64, cg);
+      generateLabelInstruction(TR::InstOpCode::JL4, node, chunk32ByteLabel, cg);
+
+
+      // Otherwise, there are at least 64 bytes left
+      // Load 64 bytes from address [buf + index]
+      generateRegMemInstruction(TR::InstOpCode::VMOVDQUZmmMem, node, zmmChunkReg, generateX86MemoryReference(bufReg, indexReg, 0, offsetToDataElements, cg), cg);
+
+      // Extract bitmask of sign bits
+      // TODO: I believe the destination register for this instruction needs to be a mask register, not a GPR
+      generateRegRegInstruction(TR::InstOpCode::VPMOVB2MRegReg, node, maskReg, zmmChunkReg, cg, vpmovb2mEncoding512Bit);
+
+      // Check if any of the sign bits are set
+      // TODO: May need to move results out of mask register mentioned above first?
+      generateRegRegInstruction(TR::InstOpCode::TEST8RegReg, node, maskReg, maskReg, cg);
+
+      // If the result is nonzero, we found at least one negative byte
+      generateLabelInstruction(TR::InstOpCode::JNE4,
+                               node,
+                               isHasNegatives ? returnBooleanLabel : foundNegativeLabel,
+                               cg);
+
+      // increment index by 64 and jump back to the top of the loop
+      generateRegImmInstruction(TR::InstOpCode::ADD4RegImm4, node, indexReg, 64, cg);
+      generateLabelInstruction(TR::InstOpCode::JMP4, node, loopLabel, cg);
+
+
+      // Consume a 32 byte chunk
+      generateLabelInstruction(TR::InstOpCode::label, node, chunk32ByteLabel, cg);
+
+      // Load 32 bytes from address [buf + index]
+      generateRegMemInstruction(TR::InstOpCode::VMOVDQUYmmMem, node, ymmChunkReg, generateX86MemoryReference(bufReg, indexReg, 0, offsetToDataElements, cg), cg);
+
+      // Extract bitmask of sign bits
+      generateRegRegInstruction(TR::InstOpCode::PMOVMSKB4RegReg, node, maskReg, ymmChunkReg, cg, pmovmskbEncoding256Bit);
+
+      // Check if any of the sign bits are set
+      generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, maskReg, maskReg, cg);
+
+      // If the result is nonzero, we found at least one negative byte
+      generateLabelInstruction(TR::InstOpCode::JNE4,
+                               node,
+                               isHasNegatives ? returnBooleanLabel : foundNegativeLabel,
+                               cg);
+
+      // increment index by 32 and jump back to the top of the loop
+      generateRegImmInstruction(TR::InstOpCode::ADD4RegImm4, node, indexReg, 32, cg);
+      generateLabelInstruction(TR::InstOpCode::JMP4, node, loopLabel, cg);
+
+
+      // Consume a 16 byte chunk
+      generateLabelInstruction(TR::InstOpCode::label, node, chunk16ByteLabel, cg);
+
+      // Load 16 bytes from address [buf + index]
+      generateRegMemInstruction(TR::InstOpCode::MOVDQURegMem, node, xmmChunkReg, generateX86MemoryReference(bufReg, indexReg, 0, offsetToDataElements, cg), cg);
+
+      // Extract bitmask of sign bits
+      generateRegRegInstruction(TR::InstOpCode::PMOVMSKB4RegReg, node, maskReg, xmmChunkReg, cg);
+
+      // Check if any of the sign bits are set
+      generateRegRegInstruction(TR::InstOpCode::TEST2RegReg, node, maskReg, maskReg, cg);
+
+      // If the result is nonzero, we found at least one negative byte
+      generateLabelInstruction(TR::InstOpCode::JNE4,
+                               node,
+                               isHasNegatives ? returnBooleanLabel : foundNegativeLabel,
+                               cg);
+
+      // increment index by 16 and jump back to the top of the loop
+      generateRegImmInstruction(TR::InstOpCode::ADD4RegImm4, node, indexReg, 16, cg);
+      generateLabelInstruction(TR::InstOpCode::JMP4, node, loopLabel, cg);
+
+
+      // Consume an 8 byte chunk
+      generateLabelInstruction(TR::InstOpCode::label, node, chunk8ByteLabel, cg);
+
+      // Load 8 bytes from address [buf + index]
+      generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, offsetToDataElements, cg), cg);
+
+      // Extract bitmask of sign bits
+      generateRegRegInstruction(TR::InstOpCode::PMOVMSKB4RegReg, node, maskReg, chunkReg, cg, pmovmskbEncoding128Bit);
+
+      // Check if any of the sign bits are set
+      generateRegRegInstruction(TR::InstOpCode::TEST1RegReg, node, maskReg, maskReg, cg);
+
+      // If the result is nonzero, we found at least one negative byte
+      generateLabelInstruction(TR::InstOpCode::JNE4,
+                               node,
+                               isHasNegatives ? returnBooleanLabel : foundNegativeLabel,
+                               cg);
+
+      // increment index by 8 and jump back to the top of the loop
+      generateRegImmInstruction(TR::InstOpCode::ADD4RegImm4, node, indexReg, 8, cg);
+      generateLabelInstruction(TR::InstOpCode::JMP4, node, loopLabel, cg);
+
+
+      // If we found any negative bytes, calculate the index of the first negative byte in the chunk
+      if (recognizedMethod == TR::java_lang_StringCoding_countPositives)
+         {
+         generateLabelInstruction(TR::InstOpCode::label, node, foundNegativeLabel, cg);
+
+         // Calculate the index of the first negative byte within the chunk
+         generateRegRegInstruction(TR::InstOpCode::TZCNT8RegReg, node, maskReg, maskReg, cg);
+
+         // Add the index, which points to the beginning of the chunk,
+         // for the overall index of the first negative byte
+         generateRegRegInstruction(TR::InstOpCode::ADD4RegReg, node, indexReg, maskReg, cg);
+
+         generateLabelInstruction(TR::InstOpCode::JMP4, node, returnHasNegativesLabel, cg);
+         }
       }
 
-   // If the result is nonzero, we found at least one negative byte
-   generateLabelInstruction(TR::InstOpCode::JNE4,
-                            node,
-                            isHasNegatives ? returnBooleanLabel : returnHasNegativesLabel,
-                            cg);
 
-   // increment index by the appropriate amount and jump back to the top of the loop
-   generateRegImmInstruction(TR::InstOpCode::ADD4RegImm4, node, indexReg, useVectorInstructions ? 16 : 8, cg);
-   generateLabelInstruction(TR::InstOpCode::JMP4, node, loopLabel, cg);
-
-
-   // Deal with the residual (last 15 or fewer) bytes
+   // Deal with the residual (last 7 or fewer) bytes
    generateLabelInstruction(TR::InstOpCode::label, node, residualLabel, cg);
 
-   // Calculate bytes remaining: loopLimit = -(loopLimit - limit)
-   generateRegRegInstruction(TR::InstOpCode::SUB4RegReg, node, loopLimitReg, limitReg, cg);
-   generateRegInstruction(TR::InstOpCode::NEG4Reg, node, loopLimitReg, cg);
-
    /*
-    *    if loopLimit == 0
+    *    if bytesLeftReg == 0
     *       return result
-    *    if loopLimit > 8
-    *       jmp nineOrMoreBytesLabel -------+
-    *    if loopLimit > 2                   |
-    *       jmp threeOrMoreBytesLabel ----+ |
-    *                                     | |
-    *    load 1-2 bytes                   | |
-    *    jmp residualTestLabel            | |
-    *                                     | |
-    *    threeOrMoreBytesLabel: <---------+ |
-    *       if loopLimit > 4                |
-    *          jmp fiveOrMoreBytesLabel --+ |
-    *                                     | |
-    *       load 3-4 bytes                | |
-    *       jmp residualTestLabel         | |
-    *                                     | |
-    *    fiveOrMoreBytesLabel: <----------+ |
-    *       load 5-8 Bytes                  |
-    *       jmp residualTestLabel           |
-    *                                       |
-    *    nineOrMoreBytesLabel: <------------+
-    *       load 9-16 bytes
+    *    if bytesLeftReg > 2
+    *       jmp threeOrMoreBytesLabel ----+
+    *                                     |
+    *    load 1-2 bytes                   |
+    *    jmp residualTestLabel            |
+    *                                     |
+    *    threeOrMoreBytesLabel: <---------+
+    *       if bytesLeftReg > 4
+    *          jmp fiveOrMoreBytesLabel --+
+    *                                     |
+    *       load 3-4 bytes                |
+    *       jmp residualTestLabel         |
+    *                                     |
+    *    fiveOrMoreBytesLabel: <----------+
+    *       load 5-7 Bytes
+    *       jmp residualTestLabel
     *
     *    residualTestLabel:
     *       AND chunkReg with maskReg
@@ -10782,28 +10901,24 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
     */
 
    // if loopLimit = 0, we did not find any negative bytes
-   generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, loopLimitReg, loopLimitReg, cg);
+   generateRegRegInstruction(TR::InstOpCode::TEST4RegReg, node, bytesLeftReg, bytesLeftReg, cg);
    generateLabelInstruction(TR::InstOpCode::JE4,
                             node,
                             isHasNegatives ? returnBooleanLabel : returnNoNegativesLabel,
                             cg);
 
    // Prepare an 8 byte sign bit mask
-   // (if the 16 byte pmovmskb instruction above isn't supported, we already did this at the start)
+   // (if we didn't use vector instructions, we already did this at the start)
    if (useVectorInstructions)
       {
       generateRegImm64Instruction(TR::InstOpCode::MOV8RegImm64, node, maskReg, 0x8080808080808080, cg);
       }
 
-   // if loopLimit > 8, jump to nineOrMoreBytesLabel
-   generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, loopLimitReg, 8, cg);
-   generateLabelInstruction(TR::InstOpCode::JG4, node, nineOrMoreBytesLabel, cg);
-
    // Zero out the chunk register
    generateRegRegInstruction(TR::InstOpCode::XOR4RegReg, node, chunkReg, chunkReg, cg);
 
-   // if loopLimit > 2, jump to threeOrMoreBytesLabel
-   generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, loopLimitReg, 2, cg);
+   // if bytesLeftReg > 2, jump to threeOrMoreBytesLabel
+   generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, bytesLeftReg, 2, cg);
    generateLabelInstruction(TR::InstOpCode::JG4, node, threeOrMoreBytesLabel, cg);
 
 
@@ -10819,8 +10934,8 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    // Case in which there are three or more residual bytes
    generateLabelInstruction(TR::InstOpCode::label, node, threeOrMoreBytesLabel, cg);
 
-   // if loopLimit > 4, jump to fiveOrMoreBytesLabel
-   generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, loopLimitReg, 4, cg);
+   // if bytesLeftReg > 4, jump to fiveOrMoreBytesLabel
+   generateRegImmInstruction(TR::InstOpCode::CMP4RegImm4, node, bytesLeftReg, 4, cg);
    generateLabelInstruction(TR::InstOpCode::JG4, node, fiveOrMoreBytesLabel, cg);
 
    // Load the first two bytes at address [buf + index] into the chunk register
@@ -10840,15 +10955,6 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    generateRegMemInstruction(TR::InstOpCode::OR4RegMem, node, chunkReg, generateX86MemoryReference(bufReg, limitReg, 0, offsetToDataElements - 4, cg), cg);
 
    generateLabelInstruction(TR::InstOpCode::JMP4, node, residualTestLabel, cg);
-
-
-   // Case in which there are nine or more residual bytes
-   generateLabelInstruction(TR::InstOpCode::label, node, nineOrMoreBytesLabel, cg);
-
-   // Load the first eight bytes at address [buf + index] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::L8RegMem, node, chunkReg, generateX86MemoryReference(bufReg, indexReg, 0, offsetToDataElements, cg), cg);
-   // OR the second eight bytes at address [buf + (limit - 8)] into the chunk register
-   generateRegMemInstruction(TR::InstOpCode::OR8RegMem, node, chunkReg, generateX86MemoryReference(bufReg, limitReg, 0, offsetToDataElements - 8, cg), cg);
 
 
    // Examine the chunk register now that all of the residual bytes have been ORed into it
@@ -10887,13 +10993,15 @@ static TR::Register* inlineHasNegativesOrCountPositives(TR::Node* node, TR::Reco
    generateLabelInstruction(TR::InstOpCode::label, node, endLabel, dependencies, cg);
 
    cg->stopUsingRegister(bufReg);
-   cg->stopUsingRegister(loopLimitReg);
    cg->stopUsingRegister(limitReg);
+   cg->stopUsingRegister(bytesLeftReg);
    cg->stopUsingRegister(maskReg);
    cg->stopUsingRegister(chunkReg);
    if (useVectorInstructions)
       {
       cg->stopUsingRegister(xmmChunkReg);
+      cg->stopUsingRegister(ymmChunkReg);
+      cg->stopUsingRegister(zmmChunkReg);
       }
 
    node->setRegister(indexReg);
